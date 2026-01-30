@@ -1,0 +1,29 @@
+# MTA Subway Train Times Configuration
+#
+# Copy this file to config.yaml and configure your stations
+#
+# For each station, specify:
+#   - name: Station name (for display)
+#   - stop_id: Base stop ID without N/S suffix
+#   - stop_ids: Multiple stop IDs for complex stations (optional)
+#   - routes: List of train routes (e.g., ["B", "C"])
+#
+# Find stop IDs at: http://web.mta.info/developers/data/nyct/subway/Stations.csv
+#
+# The script automatically:
+#   - Determines which MTA feed to use based on routes
+#   - Adds N/S suffixes for northbound/southbound
+#   - Fetches both directions
+#   - Consolidates trains by station, sorted by arrival time
+
+# Number of upcoming trains to display per direction
+num_trains: 10
+
+# Stations to monitor
+stations:
+  - name: "Times Square - 42nd St"
+    stop_id: "127"
+    routes: ["1", "2", "3"]
+    directions:
+      uptown: "UPTOWN"
+      downtown: "DOWNTOWN"
