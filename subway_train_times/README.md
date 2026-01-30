@@ -13,6 +13,11 @@ Real-time NYC subway train arrival information from the MTA GTFS feed.
 ## Installation
 
 ```bash
+# Create and activate virtual environment
+python3 -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+
+# Install dependencies
 pip install -r requirements.txt
 ```
 
@@ -41,6 +46,10 @@ Find stop IDs at: http://web.mta.info/developers/data/nyct/subway/Stations.csv
 ## Usage
 
 ```bash
+# Activate virtual environment if not already active
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+
+# Run the script
 python get_train_times.py
 ```
 
