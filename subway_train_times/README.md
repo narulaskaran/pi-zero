@@ -47,19 +47,27 @@ python get_train_times.py
 ## Example Output
 
 ```
+Fetching MTA train times...
+Time: 11:48 AM
+
 ======================================================================
-Station: 81st Street - Museum of Natural History
+Station: Times Square - 42nd St
 ======================================================================
 
-UPTOWN (Towards Bronx):
+UPTOWN:
 ----------------------------------------------------------------------
-  C Train: 2 min
-  B Train: 5 min
-  C Train: 12 min
+  1 Train: Arriving
+  2 Train: 2 min
+  1 Train: 5 min
+  3 Train: 8 min
+  2 Train: 12 min
 
-DOWNTOWN (Towards Brooklyn):
+DOWNTOWN:
 ----------------------------------------------------------------------
-  B Train: Arriving
-  C Train: 4 min
-  B Train: 8 min
+  3 Train: 1 min
+  1 Train: 3 min
+  2 Train: 6 min
+  1 Train: 9 min
+
+======================================================================
 ```
