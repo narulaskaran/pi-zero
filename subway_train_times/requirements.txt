@@ -1,2 +1,4 @@
 nyct-gtfs
 pyyaml
+flask
+pillow
