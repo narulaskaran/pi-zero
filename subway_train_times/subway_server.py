@@ -1,370 +1,383 @@
 #!/usr/bin/env python3
 """
-Subway Display Image Server
-
-Generates 800x480 BMP images for the reTerminal E1001 e-ink display.
-Reuses the existing config.yaml and MTA feed logic from get_train_times.py.
-
-Run with: python subway_server.py
-Access at: http://YOUR_PI_IP:5000/display.bmp
-
-Dependencies (add to requirements.txt):
-    flask
-    pillow
+Subway Dashboard - Layout Fixed (Mathematical Spacing)
 """
 
 import io
-from datetime import datetime
+import os
+from datetime import datetime, timedelta
 from pathlib import Path
 
 import yaml
-from flask import Flask, send_file, jsonify
+import requests
+import yfinance as yf
+from flask import Flask, send_file
 from PIL import Image, ImageDraw, ImageFont
 from nyct_gtfs import NYCTFeed
 
-# Import the route mapping from existing code
-from get_train_times import ROUTE_TO_FEED
+try:
+    from get_train_times import ROUTE_TO_FEED
+except ImportError:
+    ROUTE_TO_FEED = {}
 
 app = Flask(__name__)
 
-# ============ DISPLAY CONFIGURATION ============
+# ============ CONFIG ============
 DISPLAY_WIDTH = 800
 DISPLAY_HEIGHT = 480
 
-FONT_PATHS = [
-    "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
-    "/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf",
-    "/usr/share/fonts/truetype/freefont/FreeSansBold.ttf",
-    "DejaVuSans-Bold.ttf",
-]
-# ===============================================
+SCRIPT_DIR = Path(__file__).parent.resolve()
+LOCAL_FONT_TEXT = SCRIPT_DIR / "Roboto-Bold.ttf"
+LOCAL_FONT_ICON = SCRIPT_DIR / "DejaVuSans.ttf"
+
+SYSTEM_ICON_PATHS = ["/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", "arial.ttf"]
+
+# COLORS
+COLOR_WHITE = 255
+COLOR_BLACK = 0
+# Darker gray for better e-ink visibility
+COLOR_GRAY = 80
 
 
-def load_config():
-    """Load configuration from config.yaml (same as get_train_times.py)."""
-    script_dir = Path(__file__).parent
-    config_path = script_dir / "config.yaml"
+def get_font(size, is_bold=False, is_icon=False):
+    font_path = None
+    if is_icon:
+        if LOCAL_FONT_ICON.exists():
+            font_path = str(LOCAL_FONT_ICON)
+    else:
+        if LOCAL_FONT_TEXT.exists():
+            font_path = str(LOCAL_FONT_TEXT)
+        elif LOCAL_FONT_ICON.exists():
+            font_path = str(LOCAL_FONT_ICON)
 
-    try:
-        with open(config_path, "r") as f:
-            config = yaml.safe_load(f)
-        return config
-    except Exception as e:
-        print(f"Error loading config: {e}")
-        return None
+    if not font_path:
+        for path in SYSTEM_ICON_PATHS:
+            if os.path.exists(path):
+                font_path = path
+                break
 
-
-def get_font(size: int):
-    """Load a font, trying multiple paths."""
-    for path in FONT_PATHS:
+    if font_path:
         try:
-            return ImageFont.truetype(path, size)
-        except (IOError, OSError):
-            continue
+            return ImageFont.truetype(font_path, size)
+        except:
+            pass
     return ImageFont.load_default()
 
 
-def get_train_arrivals(station_config) -> dict:
-    """
-    Fetch train arrivals for a station.
-    Returns: {"uptown": [...], "downtown": [...]}
-    Each list contains: [{"route": "B", "minutes": 3}, ...]
-    """
-    routes = station_config["routes"]
+def load_config():
+    try:
+        with open(SCRIPT_DIR / "config.yaml", "r") as f:
+            return yaml.safe_load(f)
+    except:
+        return {}
 
-    # Support both single stop_id and multiple stop_ids
-    stop_ids = station_config.get("stop_ids", [station_config.get("stop_id")])
+
+# ============ DATA ============
+def get_weather(lat, lon):
+    try:
+        url = "https://api.open-meteo.com/v1/forecast"
+        params = {
+            "latitude": lat,
+            "longitude": lon,
+            "current": ["temperature_2m", "weather_code"],
+            "daily": ["weather_code", "temperature_2m_max", "temperature_2m_min"],
+            "temperature_unit": "fahrenheit",
+            "timezone": "auto",
+            "forecast_days": 8,
+        }
+        r = requests.get(url, params=params, timeout=5)
+        r.raise_for_status()
+        return r.json()
+    except:
+        return None
+
+
+def get_finance():
+    data = []
+    try:
+        tickers = {"^GSPC": "S&P", "BTC-USD": "BTC", "GC=F": "Gold"}
+        t_obj = yf.Tickers(" ".join(tickers.keys()))
+        for sym, label in tickers.items():
+            info = t_obj.tickers[sym].fast_info
+            if info.last_price:
+                pct = (
+                    (info.last_price - info.previous_close) / info.previous_close
+                ) * 100
+                data.append({"label": label, "price": info.last_price, "change": pct})
+    except:
+        pass
+    return data
+
+
+def get_subway(config):
+    if not config:
+        return None
+    routes = config.get("routes", [])
+    stop_ids = config.get("stop_ids", [config.get("stop_id")])
     if not isinstance(stop_ids, list):
         stop_ids = [stop_ids]
-
-    # Group routes by feed
-    feed_to_routes = {}
-    for route in routes:
-        if route not in ROUTE_TO_FEED:
-            continue
-        feed_url = ROUTE_TO_FEED[route]
-        if feed_url not in feed_to_routes:
-            feed_to_routes[feed_url] = []
-        feed_to_routes[feed_url].append(route)
-
-    uptown_arrivals = []
-    downtown_arrivals = []
-
+    res = {"uptown": [], "downtown": []}
+    feeds = {}
+    for r in routes:
+        u = ROUTE_TO_FEED.get(r)
+        if u:
+            feeds.setdefault(u, []).append(r)
     try:
-        for feed_url, feed_routes in feed_to_routes.items():
-            feed = NYCTFeed(feed_url)
-
-            for stop_id_base in stop_ids:
-                uptown_stop_id = f"{stop_id_base}N"
-                downtown_stop_id = f"{stop_id_base}S"
-
-                # Uptown trains
-                uptown_trips = feed.filter_trips(
-                    headed_for_stop_id=uptown_stop_id, underway=True
-                )
-
-                for trip in uptown_trips:
-                    if trip.route_id not in routes:
-                        continue
-                    for update in trip.stop_time_updates:
-                        if update.stop_id == uptown_stop_id and update.arrival:
-                            minutes = int(
-                                (update.arrival - datetime.now()).total_seconds() / 60
-                            )
-                            if minutes >= 0:
-                                uptown_arrivals.append(
-                                    {
-                                        "route": trip.route_id,
-                                        "minutes": minutes,
-                                        "arrival": update.arrival,
-                                    }
+        for url, r_list in feeds.items():
+            feed = NYCTFeed(url)
+            for sid in stop_ids:
+                for t in feed.filter_trips(headed_for_stop_id=f"{sid}N", underway=True):
+                    if t.route_id in r_list:
+                        for u in t.stop_time_updates:
+                            if u.stop_id == f"{sid}N" and u.arrival:
+                                m = int(
+                                    (u.arrival - datetime.now()).total_seconds() / 60
                                 )
-                            break
-
-                # Downtown trains
-                downtown_trips = feed.filter_trips(
-                    headed_for_stop_id=downtown_stop_id, underway=True
-                )
-
-                for trip in downtown_trips:
-                    if trip.route_id not in routes:
-                        continue
-                    for update in trip.stop_time_updates:
-                        if update.stop_id == downtown_stop_id and update.arrival:
-                            minutes = int(
-                                (update.arrival - datetime.now()).total_seconds() / 60
-                            )
-                            if minutes >= 0:
-                                downtown_arrivals.append(
-                                    {
-                                        "route": trip.route_id,
-                                        "minutes": minutes,
-                                        "arrival": update.arrival,
-                                    }
+                                if m >= 0:
+                                    res["uptown"].append(
+                                        {"route": t.route_id, "min": m}
+                                    )
+                                break
+                for t in feed.filter_trips(headed_for_stop_id=f"{sid}S", underway=True):
+                    if t.route_id in r_list:
+                        for u in t.stop_time_updates:
+                            if u.stop_id == f"{sid}S" and u.arrival:
+                                m = int(
+                                    (u.arrival - datetime.now()).total_seconds() / 60
                                 )
-                            break
-
-        # Sort by arrival time
-        uptown_arrivals.sort(key=lambda x: x["minutes"])
-        downtown_arrivals.sort(key=lambda x: x["minutes"])
-
-    except Exception as e:
-        print(f"Error fetching train data: {e}")
-
-    return {"uptown": uptown_arrivals, "downtown": downtown_arrivals}
-
-
-def draw_subway_bullet(draw: ImageDraw, x: int, y: int, route: str, size: int = 55):
-    """Draw a subway line bullet (circle with letter)."""
-    draw.ellipse([x, y, x + size, y + size], fill="black", outline="black")
-
-    font = get_font(int(size * 0.6))
-    bbox = draw.textbbox((0, 0), route, font=font)
-    text_width = bbox[2] - bbox[0]
-    text_height = bbox[3] - bbox[1]
-
-    text_x = x + (size - text_width) // 2
-    text_y = y + (size - text_height) // 2 - 2
-
-    draw.text((text_x, text_y), route, fill="white", font=font)
+                                if m >= 0:
+                                    res["downtown"].append(
+                                        {"route": t.route_id, "min": m}
+                                    )
+                                break
+    except:
+        pass
+    res["uptown"].sort(key=lambda x: x["min"])
+    res["downtown"].sort(key=lambda x: x["min"])
+    return res
 
 
-def generate_display_image() -> Image.Image:
-    """Generate the subway display image based on config.yaml."""
-    img = Image.new("1", (DISPLAY_WIDTH, DISPLAY_HEIGHT), color=1)  # 1-bit, white
+# ============ DRAWING HELPERS ============
+def get_w_icon(code):
+    if code in [0, 1]:
+        return "☀"
+    if code in [2, 3]:
+        return "☁"
+    if code in [45, 48]:
+        return "≈"
+    if code in [51, 53, 55, 61, 63, 65]:
+        return "☂"
+    if code in [71, 73, 75, 77]:
+        return "❄"
+    if code in [95, 96, 99]:
+        return "⚡"
+    return "?"
+
+
+def draw_centered_text(draw, x, y, text, font, fill=COLOR_BLACK, align="left"):
+    bbox = draw.textbbox((0, 0), text, font=font)
+    w = bbox[2] - bbox[0]
+    if align == "center":
+        draw.text((x - (w // 2), y), text, font=font, fill=fill)
+    elif align == "right":
+        draw.text((x - w, y), text, font=font, fill=fill)
+    else:
+        draw.text((x, y), text, font=font, fill=fill)
+    return w
+
+
+def draw_train_block(draw, x, y, train, font_bul, font_time, is_first=False):
+    # Bullet Circle (56px)
+    size = 56
+    draw.ellipse([x, y, x + size, y + size], fill=COLOR_BLACK)
+
+    # Route Letter
+    bw = draw.textbbox((0, 0), train["route"], font=font_bul)[2]
+    # Optical center adjustment
+    draw.text((x + (size - bw) / 2, y), train["route"], fill=COLOR_WHITE, font=font_bul)
+
+    text_color = COLOR_BLACK if is_first else COLOR_GRAY
+
+    # Text Y position: Bullet Y + 60px padding
+    text_y = y + 60
+
+    if train["min"] == 0:
+        draw_centered_text(
+            draw,
+            x + (size // 2),
+            text_y,
+            "Now",
+            font_time,
+            fill=text_color,
+            align="center",
+        )
+    else:
+        full_str = f"{train['min']}m"
+        draw_centered_text(
+            draw,
+            x + (size // 2),
+            text_y,
+            full_str,
+            font_time,
+            fill=text_color,
+            align="center",
+        )
+
+
+def generate_image():
+    img = Image.new("L", (DISPLAY_WIDTH, DISPLAY_HEIGHT), color=COLOR_WHITE)
     draw = ImageDraw.Draw(img)
 
-    # Fonts
-    font_title = get_font(42)
-    font_time = get_font(64)
-    font_small = get_font(24)
-    font_direction = get_font(28)
+    # FONTS
+    f_huge = get_font(68, True)
+    f_large = get_font(48, True)
+    f_med = get_font(28, True)
+    f_small = get_font(20, True)
+    f_tiny = get_font(16)
+
+    f_icon_lg = get_font(60, is_icon=True)
+    f_icon_med = get_font(28, is_icon=True)
+    f_icon_sm = get_font(20, is_icon=True)
+
+    # --- 1. HEADER (0 - 115) ---
+    now = datetime.now()
+    w_time = draw_centered_text(draw, 20, 10, now.strftime("%I:%M").lstrip("0"), f_huge)
+    draw.text((20 + w_time + 8, 48), now.strftime("%p"), font=f_med, fill=COLOR_GRAY)
+    draw.text((22, 80), now.strftime("%A, %b %d"), font=f_med)
 
     config = load_config()
+    station = (config.get("stations") or config.get("stops", [{}]))[0]
+    weather = get_weather(station.get("lat", 40.78), station.get("lon", -73.97))
 
-    if not config:
-        draw.text(
-            (50, DISPLAY_HEIGHT // 2),
-            "Config error - check config.yaml",
-            fill="black",
-            font=font_small,
+    if weather and "current" in weather:
+        temp = f"{int(weather['current']['temperature_2m'])}°"
+        icon = get_w_icon(weather["current"]["weather_code"])
+        w_t = draw_centered_text(
+            draw, DISPLAY_WIDTH - 20, 20, temp, f_huge, align="right"
         )
-        return img
-
-    stations = config.get("stations", config.get("stops", []))
-
-    if not stations:
-        draw.text(
-            (50, DISPLAY_HEIGHT // 2),
-            "No stations configured",
-            fill="black",
-            font=font_small,
+        draw_centered_text(
+            draw, DISPLAY_WIDTH - 20 - w_t - 10, 15, icon, f_icon_lg, align="right"
         )
-        return img
 
-    # For now, display the first station (can extend later for multiple)
-    station = stations[0]
-    station_name = station["name"]
-    directions = station.get("directions", {"uptown": "UPTOWN", "downtown": "DOWNTOWN"})
+    draw.line([(0, 115), (DISPLAY_WIDTH, 115)], fill=COLOR_BLACK, width=4)
 
-    # Fetch arrivals
-    arrivals = get_train_arrivals(station)
+    # --- 2. MAIN BODY (115 - 360) ---
+    draw.line([(600, 115), (600, 360)], fill=COLOR_BLACK, width=3)
 
-    # Draw header
-    now = datetime.now()
-    time_str = now.strftime("%I:%M %p")
+    subway = get_subway(station)
+    dirs = station.get("directions", {})
+    slot_centers = [75, 225, 375, 525]
 
-    # Truncate station name if too long
-    display_name = station_name if len(station_name) < 35 else station_name[:32] + "..."
-    draw.text((20, 12), display_name, fill="black", font=font_title)
-    draw.text((DISPLAY_WIDTH - 140, 18), time_str, fill="black", font=font_small)
+    # === UPTOWN ===
+    lbl_up = dirs.get("uptown", "UP").split("(")[0].strip()
+    draw.text((20, 120), lbl_up, font=f_med, fill=COLOR_GRAY)
 
-    # Separator
-    draw.line([(20, 65), (DISPLAY_WIDTH - 20, 65)], fill="black", width=3)
+    # Trains START at y=145
+    # Bullet: 145 to 201
+    # Text:   205 to 225
+    if subway and subway["uptown"]:
+        for i, t in enumerate(subway["uptown"][:4]):
+            center_x = slot_centers[i]
+            draw_train_block(
+                draw, center_x - 28, 145, t, f_large, f_med, is_first=(i == 0)
+            )
 
-    y_pos = 80
+    # === DOWNTOWN ===
+    lbl_down = dirs.get("downtown", "DOWN").split("(")[0].strip()
+    # Label at 235 (10px clearance below Uptown text)
+    draw.text((20, 235), lbl_down, font=f_med, fill=COLOR_GRAY)
 
-    # Uptown section
-    uptown_label = directions.get("uptown", "UPTOWN")
-    # Simplify long direction labels
-    if len(uptown_label) > 20:
-        uptown_label = uptown_label.split("(")[0].strip()
-    draw.text((20, y_pos), f"↑ {uptown_label}", fill="black", font=font_direction)
-    y_pos += 40
+    # Trains START at y=260
+    # Bullet: 260 to 316
+    # Text:   320 to 340
+    # Clearance to footer (360): 20px
+    if subway and subway["downtown"]:
+        for i, t in enumerate(subway["downtown"][:4]):
+            center_x = slot_centers[i]
+            draw_train_block(
+                draw, center_x - 28, 260, t, f_large, f_med, is_first=(i == 0)
+            )
 
-    uptown = arrivals["uptown"][:3]  # Max 3 trains per direction
-    if uptown:
-        for train in uptown:
-            draw_subway_bullet(draw, 30, y_pos, train["route"])
-            mins = train["minutes"]
-            time_text = "Now" if mins == 0 else f"{mins} min"
-            draw.text((100, y_pos + 8), time_text, fill="black", font=font_time)
-            y_pos += 65
-    else:
-        draw.text((100, y_pos), "No trains", fill="black", font=font_small)
-        y_pos += 40
+    # === FINANCE COLUMN ===
+    fin = get_finance()
+    fin_center_x = 700
 
-    # Separator
-    y_pos += 5
-    draw.line([(20, y_pos), (DISPLAY_WIDTH - 20, y_pos)], fill="black", width=2)
-    y_pos += 15
+    # Start at 125. 3 items x 75px = 225px. 125+225 = 350. Fits.
+    fin_y = 125
 
-    # Downtown section
-    downtown_label = directions.get("downtown", "DOWNTOWN")
-    if len(downtown_label) > 20:
-        downtown_label = downtown_label.split("(")[0].strip()
-    draw.text((20, y_pos), f"↓ {downtown_label}", fill="black", font=font_direction)
-    y_pos += 40
+    for f in fin:
+        is_up = f["change"] >= 0
+        sym = "▲" if is_up else "▼"
 
-    downtown = arrivals["downtown"][:3]
-    if downtown:
-        for train in downtown:
-            draw_subway_bullet(draw, 30, y_pos, train["route"])
-            mins = train["minutes"]
-            time_text = "Now" if mins == 0 else f"{mins} min"
-            draw.text((100, y_pos + 8), time_text, fill="black", font=font_time)
-            y_pos += 65
-    else:
-        draw.text((100, y_pos), "No trains", fill="black", font=font_small)
+        # 1. Label
+        draw_centered_text(
+            draw, fin_center_x, fin_y, f.get("label"), f_med, align="center"
+        )
 
-    # Footer
-    draw.line(
-        [(20, DISPLAY_HEIGHT - 45), (DISPLAY_WIDTH - 20, DISPLAY_HEIGHT - 45)],
-        fill="black",
-        width=2,
-    )
-    draw.text(
-        (20, DISPLAY_HEIGHT - 35),
-        f"Updated: {now.strftime('%I:%M:%S %p')}",
-        fill="black",
-        font=font_small,
-    )
+        # 2. Percent (Tight vertical spacing)
+        pct_str = f"{abs(f['change']):.1f}%"
+        aw = draw.textbbox((0, 0), sym, font=f_icon_med)[2]
+        pw = draw.textbbox((0, 0), pct_str, font=f_med)[2]
+        total_w = aw + 4 + pw
+        start_x = fin_center_x - (total_w // 2)
+
+        draw.text((start_x, fin_y + 26), sym, font=f_icon_med, fill=COLOR_BLACK)
+        draw.text((start_x + aw + 4, fin_y + 26), pct_str, font=f_med, fill=COLOR_BLACK)
+
+        # 3. Price
+        if f["label"] == "BTC":
+            p = f"{f['price']/1000:.1f}k"
+        elif f["price"] > 100:
+            p = f"{f['price']:.0f}"
+        else:
+            p = f"{f['price']:.1f}"
+
+        draw_centered_text(
+            draw, fin_center_x, fin_y + 54, p, f_small, fill=COLOR_GRAY, align="center"
+        )
+
+        fin_y += 75  # Reduced step
+
+    # --- 3. FOOTER (360 - 480) ---
+    fy = 360
+    draw.line([(0, fy), (DISPLAY_WIDTH, fy)], fill=COLOR_BLACK, width=3)
+
+    if weather and "daily" in weather:
+        d = weather["daily"]
+        col_w = DISPLAY_WIDTH / 7
+        for i in range(0, 7):
+            date_obj = now + timedelta(days=i)
+            day_label = date_obj.strftime("%a")
+            icon = get_w_icon(d["weather_code"][i])
+            hi = int(d["temperature_2m_max"][i])
+            lo = int(d["temperature_2m_min"][i])
+            cx = (i * col_w) + (col_w / 2)
+
+            draw_centered_text(draw, cx, fy + 10, day_label, f_small, align="center")
+            draw_centered_text(draw, cx, fy + 35, icon, f_icon_med, align="center")
+            draw_centered_text(draw, cx - 12, fy + 75, f"{hi}°", f_med, align="center")
+            draw.text((cx + 12, fy + 82), f"{lo}°", font=f_tiny, fill=COLOR_GRAY)
 
     return img
 
 
-@app.route("/")
-def index():
-    """Health check with links."""
-    return """
-    <html>
-    <head><title>Subway Display Server</title></head>
-    <body>
-        <h1>Subway Display Server</h1>
-        <ul>
-            <li><a href="/display.bmp">/display.bmp</a> - BMP for e-ink</li>
-            <li><a href="/display.png">/display.png</a> - PNG preview</li>
-            <li><a href="/status">/status</a> - JSON status</li>
-        </ul>
-    </body>
-    </html>
-    """
-
-
 @app.route("/display.bmp")
-def display_bmp():
-    """Serve the display image as BMP."""
-    img = generate_display_image()
-    buf = io.BytesIO()
-    img.save(buf, format="BMP")
-    buf.seek(0)
-    return send_file(buf, mimetype="image/bmp", download_name="display.bmp")
+def serve_bmp():
+    img = generate_image()
+    b = io.BytesIO()
+    img.save(b, "BMP")
+    b.seek(0)
+    return send_file(b, mimetype="image/bmp")
 
 
 @app.route("/display.png")
-def display_png():
-    """Serve PNG preview for browser viewing."""
-    img = generate_display_image()
-    buf = io.BytesIO()
-    img.save(buf, format="PNG")
-    buf.seek(0)
-    return send_file(buf, mimetype="image/png", download_name="display.png")
-
-
-@app.route("/status")
-def status():
-    """Return JSON status."""
-    config = load_config()
-    stations = config.get("stations", config.get("stops", [])) if config else []
-
-    result = {"status": "ok", "timestamp": datetime.now().isoformat(), "stations": []}
-
-    for station in stations:
-        arrivals = get_train_arrivals(station)
-        result["stations"].append(
-            {
-                "name": station["name"],
-                "stop_id": station.get("stop_id"),
-                "routes": station.get("routes"),
-                "uptown": [
-                    {"route": t["route"], "minutes": t["minutes"]}
-                    for t in arrivals["uptown"][:5]
-                ],
-                "downtown": [
-                    {"route": t["route"], "minutes": t["minutes"]}
-                    for t in arrivals["downtown"][:5]
-                ],
-            }
-        )
-
-    return jsonify(result)
+def serve_png():
+    img = generate_image()
+    b = io.BytesIO()
+    img.save(b, "PNG")
+    b.seek(0)
+    return send_file(b, mimetype="image/png")
 
 
 if __name__ == "__main__":
-    config = load_config()
-    if config:
-        stations = config.get("stations", config.get("stops", []))
-        print("=" * 50)
-        print("Subway Display Image Server")
-        print("=" * 50)
-        for station in stations:
-            print(f"  Station: {station['name']}")
-            print(f"  Routes:  {station['routes']}")
-        print()
-        print("Endpoints:")
-        print("  /display.bmp  - BMP for e-ink display")
-        print("  /display.png  - PNG preview")
-        print("  /status       - JSON status")
-        print("=" * 50)
-
-    app.run(host="0.0.0.0", port=5000, debug=False)
+    app.run(host="0.0.0.0", port=8080)

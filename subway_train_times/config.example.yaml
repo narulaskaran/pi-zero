@@ -6,9 +6,13 @@
 #   - name: Station name (for display)
 #   - stop_id: Base stop ID without N/S suffix
 #   - stop_ids: Multiple stop IDs for complex stations (optional)
+#   - lat: Latitude for local weather (required for weather display)
+#   - lon: Longitude for local weather (required for weather display)
 #   - routes: List of train routes (e.g., ["B", "C"])
+#   - directions: Custom labels for UPTOWN/DOWNTOWN sections
 #
 # Find stop IDs at: http://web.mta.info/developers/data/nyct/subway/Stations.csv
+# Find coordinates via Google Maps (right-click a location > select coordinates)
 #
 # The script automatically:
 #   - Determines which MTA feed to use based on routes
@@ -23,6 +27,8 @@ num_trains: 10
 stations:
   - name: "Times Square - 42nd St"
     stop_id: "127"
+    lat: 40.7580
+    lon: -73.9855
     routes: ["1", "2", "3"]
     directions:
       uptown: "UPTOWN"

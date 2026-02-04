@@ -2,3 +2,5 @@ nyct-gtfs
 pyyaml
 flask
 pillow
+requests 
+yfinance
