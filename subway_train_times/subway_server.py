@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Subway Dashboard - Layout Fixed (Mathematical Spacing)
+Subway Dashboard - Final Spacing Fix (Smaller Labels)
 """
 
 import io
@@ -35,7 +35,6 @@ SYSTEM_ICON_PATHS = ["/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", "arial.t
 # COLORS
 COLOR_WHITE = 255
 COLOR_BLACK = 0
-# Darker gray for better e-ink visibility
 COLOR_GRAY = 80
 
 
@@ -187,18 +186,13 @@ def draw_centered_text(draw, x, y, text, font, fill=COLOR_BLACK, align="left"):
 
 
 def draw_train_block(draw, x, y, train, font_bul, font_time, is_first=False):
-    # Bullet Circle (56px)
     size = 56
     draw.ellipse([x, y, x + size, y + size], fill=COLOR_BLACK)
 
-    # Route Letter
     bw = draw.textbbox((0, 0), train["route"], font=font_bul)[2]
-    # Optical center adjustment
     draw.text((x + (size - bw) / 2, y), train["route"], fill=COLOR_WHITE, font=font_bul)
 
     text_color = COLOR_BLACK if is_first else COLOR_GRAY
-
-    # Text Y position: Bullet Y + 60px padding
     text_y = y + 60
 
     if train["min"] == 0:
@@ -232,6 +226,10 @@ def generate_image():
     f_huge = get_font(68, True)
     f_large = get_font(48, True)
     f_med = get_font(28, True)
+
+    # New Smaller Header Font (24px instead of 28px)
+    f_header = get_font(24, True)
+
     f_small = get_font(20, True)
     f_tiny = get_font(16)
 
@@ -242,7 +240,7 @@ def generate_image():
     # --- 1. HEADER (0 - 115) ---
     now = datetime.now()
     w_time = draw_centered_text(draw, 20, 10, now.strftime("%I:%M").lstrip("0"), f_huge)
-    draw.text((20 + w_time + 8, 48), now.strftime("%p"), font=f_med, fill=COLOR_GRAY)
+    draw.text((20 + w_time + 8, 58), now.strftime("%p"), font=f_med, fill=COLOR_GRAY)
     draw.text((22, 80), now.strftime("%A, %b %d"), font=f_med)
 
     config = load_config()
@@ -270,51 +268,43 @@ def generate_image():
 
     # === UPTOWN ===
     lbl_up = dirs.get("uptown", "UP").split("(")[0].strip()
-    draw.text((20, 120), lbl_up, font=f_med, fill=COLOR_GRAY)
+    # Using smaller f_header
+    draw.text((20, 122), lbl_up, font=f_header, fill=COLOR_GRAY)
 
-    # Trains START at y=145
-    # Bullet: 145 to 201
-    # Text:   205 to 225
     if subway and subway["uptown"]:
         for i, t in enumerate(subway["uptown"][:4]):
             center_x = slot_centers[i]
+            # y=148 slightly nudged down to give header space
             draw_train_block(
-                draw, center_x - 28, 145, t, f_large, f_med, is_first=(i == 0)
+                draw, center_x - 28, 148, t, f_large, f_med, is_first=(i == 0)
             )
 
     # === DOWNTOWN ===
     lbl_down = dirs.get("downtown", "DOWN").split("(")[0].strip()
-    # Label at 235 (10px clearance below Uptown text)
-    draw.text((20, 235), lbl_down, font=f_med, fill=COLOR_GRAY)
+    # y=245 gives us ~15-20px clearance from the Uptown "min" text above
+    draw.text((20, 245), lbl_down, font=f_header, fill=COLOR_GRAY)
 
-    # Trains START at y=260
-    # Bullet: 260 to 316
-    # Text:   320 to 340
-    # Clearance to footer (360): 20px
     if subway and subway["downtown"]:
         for i, t in enumerate(subway["downtown"][:4]):
             center_x = slot_centers[i]
+            # y=270 ensures the bottom of the "min" text sits at ~350px (clear of footer)
             draw_train_block(
-                draw, center_x - 28, 260, t, f_large, f_med, is_first=(i == 0)
+                draw, center_x - 28, 270, t, f_large, f_med, is_first=(i == 0)
             )
 
     # === FINANCE COLUMN ===
     fin = get_finance()
     fin_center_x = 700
-
-    # Start at 125. 3 items x 75px = 225px. 125+225 = 350. Fits.
     fin_y = 125
 
     for f in fin:
         is_up = f["change"] >= 0
         sym = "▲" if is_up else "▼"
 
-        # 1. Label
         draw_centered_text(
             draw, fin_center_x, fin_y, f.get("label"), f_med, align="center"
         )
 
-        # 2. Percent (Tight vertical spacing)
         pct_str = f"{abs(f['change']):.1f}%"
         aw = draw.textbbox((0, 0), sym, font=f_icon_med)[2]
         pw = draw.textbbox((0, 0), pct_str, font=f_med)[2]
@@ -324,7 +314,6 @@ def generate_image():
         draw.text((start_x, fin_y + 26), sym, font=f_icon_med, fill=COLOR_BLACK)
         draw.text((start_x + aw + 4, fin_y + 26), pct_str, font=f_med, fill=COLOR_BLACK)
 
-        # 3. Price
         if f["label"] == "BTC":
             p = f"{f['price']/1000:.1f}k"
         elif f["price"] > 100:
@@ -336,7 +325,7 @@ def generate_image():
             draw, fin_center_x, fin_y + 54, p, f_small, fill=COLOR_GRAY, align="center"
         )
 
-        fin_y += 75  # Reduced step
+        fin_y += 75
 
     # --- 3. FOOTER (360 - 480) ---
     fy = 360
@@ -380,4 +369,4 @@ def serve_png():
 
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=8080)
+    app.run(host="0.0.0.0", port=5000)
