@@ -5,10 +5,10 @@ Wants=network-online.target
 
 [Service]
 Type=simple
-User=pi
-Group=pi
-WorkingDirectory=/home/pi/pi-zero/subway_train_times
-ExecStart=/usr/bin/python3 /home/pi/pi-zero/subway_train_times/subway_server.py
+User=<USER>
+Group=<USER>
+WorkingDirectory=/home/<USER>/pi-zero/subway_train_times
+ExecStart=/usr/bin/python3 /home/<USER>/pi-zero/subway_train_times/subway_server.py
 Restart=always
 RestartSec=10
 Environment=PYTHONUNBUFFERED=1

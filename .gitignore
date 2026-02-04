@@ -41,3 +41,4 @@ Thumbs.db
 
 # Personal configuration
 *config.yaml
+*.ino
