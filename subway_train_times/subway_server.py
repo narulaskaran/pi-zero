@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Subway Dashboard - Final Spacing Fix (Smaller Labels)
+Subway Dashboard - 1-Bit Dithered Fix
 """
 
 import io
@@ -268,26 +268,24 @@ def generate_image():
 
     # === UPTOWN ===
     lbl_up = dirs.get("uptown", "UP").split("(")[0].strip()
-    # Using smaller f_header
     draw.text((20, 122), lbl_up, font=f_header, fill=COLOR_GRAY)
 
     if subway and subway["uptown"]:
         for i, t in enumerate(subway["uptown"][:4]):
             center_x = slot_centers[i]
-            # y=148 slightly nudged down to give header space
+            # y=148 slightly nudged down
             draw_train_block(
                 draw, center_x - 28, 148, t, f_large, f_med, is_first=(i == 0)
             )
 
     # === DOWNTOWN ===
     lbl_down = dirs.get("downtown", "DOWN").split("(")[0].strip()
-    # y=245 gives us ~15-20px clearance from the Uptown "min" text above
     draw.text((20, 245), lbl_down, font=f_header, fill=COLOR_GRAY)
 
     if subway and subway["downtown"]:
         for i, t in enumerate(subway["downtown"][:4]):
             center_x = slot_centers[i]
-            # y=270 ensures the bottom of the "min" text sits at ~350px (clear of footer)
+            # y=270 ensures the bottom is clear
             draw_train_block(
                 draw, center_x - 28, 270, t, f_large, f_med, is_first=(i == 0)
             )
@@ -353,6 +351,13 @@ def generate_image():
 @app.route("/display.bmp")
 def serve_bmp():
     img = generate_image()
+
+    # === CRITICAL FIX ===
+    # Convert to 1-bit B&W using dithering.
+    # This solves the 385KB size issue and makes it ~48KB
+    img = img.convert("1")
+    # ====================
+
     b = io.BytesIO()
     img.save(b, "BMP")
     b.seek(0)
@@ -362,6 +367,8 @@ def serve_bmp():
 @app.route("/display.png")
 def serve_png():
     img = generate_image()
+    # Optional: convert PNG to 1-bit too if you want to preview the exact look
+    # img = img.convert("1")
     b = io.BytesIO()
     img.save(b, "PNG")
     b.seek(0)
