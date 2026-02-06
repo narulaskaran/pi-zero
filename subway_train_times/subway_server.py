@@ -455,8 +455,8 @@ def generate_image(battery_percent=None):
         draw.text((batt_x + battery_width + terminal_width + 6, batt_y + 2), batt_text, font=f_tiny, fill=COLOR_BLACK)
 
     # --- NEXT REFRESH TIME (top center, above battery) ---
-    refresh_minutes = calculate_refresh_rate()
-    next_refresh_time = datetime.now() + timedelta(minutes=refresh_minutes)
+    refresh_seconds = calculate_refresh_rate()
+    next_refresh_time = datetime.now() + timedelta(seconds=refresh_seconds)
     next_refresh_str = next_refresh_time.strftime("Next update: %I:%M %p")
 
     # Calculate text position for center alignment
