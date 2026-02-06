@@ -454,6 +454,19 @@ def generate_image(battery_percent=None):
         batt_text = f"{battery_percent}%"
         draw.text((batt_x + battery_width + terminal_width + 6, batt_y + 2), batt_text, font=f_tiny, fill=COLOR_BLACK)
 
+    # --- NEXT REFRESH TIME (top center, above battery) ---
+    refresh_minutes = calculate_refresh_rate()
+    next_refresh_time = datetime.now() + timedelta(minutes=refresh_minutes)
+    next_refresh_str = next_refresh_time.strftime("Next update: %I:%M %p")
+
+    # Calculate text position for center alignment
+    bbox = draw.textbbox((0, 0), next_refresh_str, font=f_tiny)
+    text_width = bbox[2] - bbox[0]
+    refresh_x = (DISPLAY_WIDTH - text_width) // 2
+    refresh_y = 30  # Top, below battery indicator
+
+    draw.text((refresh_x, refresh_y), next_refresh_str, font=f_tiny, fill=COLOR_BLACK)
+
     return img
 
 

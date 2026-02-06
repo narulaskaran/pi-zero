@@ -15,12 +15,21 @@ const char* WIFI_PASSWORD = "YOUR_WIFI_PASSWORD";
 const char* PI_SERVER_URL = "http://YOUR_PI_IP:5000";
 const char* OTA_HOSTNAME   = "reterminal-display";
 
-const int DEFAULT_SLEEP_MINUTES = 5;
-const int BATTERY_ADC_PIN = 1;
-const float VOLTAGE_DIVIDER_RATIO = 2.0;
+const int DEFAULT_SLEEP_MINUTES = 1;  // Default 1 minute
+
+// Battery monitoring - reTerminal E1001 specific
+const int BATTERY_ENABLE_PIN = 21;    // GPIO21: VBAT ENABLE (must set HIGH before reading)
+const int BATTERY_ADC_PIN    = 1;     // GPIO1:  VBAT ADC
+const float VOLTAGE_DIVIDER_RATIO = 2.0;  // Two 10kΩ resistors on board
 
 const bool OTA_ENABLED = true;
 const int OTA_WAIT_SECONDS = 10;
+
+// Button wakeup - reTerminal E1001 has 3 buttons:
+//   GPIO3 = Green button, GPIO4 = Right white, GPIO5 = Left white
+// All are INPUT_PULLUP, active LOW (pressed = LOW)
+const int BUTTON_PIN = 3;             // Green button = GPIO3
+const bool BUTTON_WAKEUP_ENABLED = true;
 // =======================================================
 
 // ==================== PIN DEFINITIONS ====================
@@ -47,11 +56,39 @@ GxEPD2_DISPLAY_CLASS<GxEPD2_DRIVER_CLASS, MAX_HEIGHT(GxEPD2_DRIVER_CLASS)>
     display(GxEPD2_DRIVER_CLASS(EPD_CS_PIN, EPD_DC_PIN, EPD_RES_PIN, EPD_BUSY_PIN));
 
 // ==================== HELPER FUNCTIONS ====================
+/**
+ * Read battery percentage from the reTerminal E1001's internal circuit.
+ *
+ * CRITICAL: GPIO21 must be set HIGH to enable the battery voltage divider
+ * before reading the ADC on GPIO1. Without this, you read garbage.
+ * The ADC also needs 11dB attenuation to measure voltages above 1.1V.
+ */
 float readBatteryPercentage() {
-    int rawValue = analogRead(BATTERY_ADC_PIN);
+    // Step 1: Enable battery voltage measurement circuit
+    pinMode(BATTERY_ENABLE_PIN, OUTPUT);
+    digitalWrite(BATTERY_ENABLE_PIN, HIGH);
+    delay(200);  // Wait for voltage to stabilize (per Seeed's ESPHome config)
+
+    // Step 2: Configure ADC attenuation for voltage range up to ~3.3V
+    analogSetPinAttenuation(BATTERY_ADC_PIN, ADC_11db);
+
+    // Step 3: Take multiple readings and average for stability
+    long total = 0;
+    const int samples = 16;
+    for (int i = 0; i < samples; i++) {
+        total += analogRead(BATTERY_ADC_PIN);
+        delay(5);
+    }
+    int rawValue = total / samples;
+
+    // Step 4: Convert to actual battery voltage
+    // ESP32-S3 ADC: 12-bit (0-4095), reference ~3.3V at 11dB attenuation
+    // Voltage divider on board halves the battery voltage, so multiply by 2.0
     float voltage = (rawValue / 4095.0) * 3.3 * VOLTAGE_DIVIDER_RATIO;
 
-    // Convert voltage to percentage (assuming 3.0V-4.2V range for Li-ion)
+    Serial1.printf("Battery ADC raw: %d, voltage: %.2fV\n", rawValue, voltage);
+
+    // Step 5: Convert voltage to percentage (Li-ion: 3.0V empty, 4.2V full)
     float minVoltage = 3.0;
     float maxVoltage = 4.2;
     float percentage = ((voltage - minVoltage) / (maxVoltage - minVoltage)) * 100.0;
@@ -59,6 +96,9 @@ float readBatteryPercentage() {
     // Clamp to 0-100 range
     if (percentage < 0) percentage = 0;
     if (percentage > 100) percentage = 100;
+
+    // Optional: disable battery measurement to save a tiny bit of power
+    // digitalWrite(BATTERY_ENABLE_PIN, LOW);
 
     return percentage;
 }
@@ -132,6 +172,19 @@ void setup() {
     Serial1.begin(115200, SERIAL_8N1, SERIAL_RX, SERIAL_TX);
     pinMode(LED_PIN, OUTPUT);
     digitalWrite(LED_PIN, LOW); // LED ON
+
+    // Setup button as input (active LOW with internal pull-up)
+    pinMode(BUTTON_PIN, INPUT_PULLUP);
+
+    // Check wakeup reason
+    esp_sleep_wakeup_cause_t wakeup_reason = esp_sleep_get_wakeup_cause();
+    if (wakeup_reason == ESP_SLEEP_WAKEUP_EXT0) {
+        Serial1.println("Woke up by GREEN BUTTON press - manual refresh!");
+    } else if (wakeup_reason == ESP_SLEEP_WAKEUP_TIMER) {
+        Serial1.println("Woke up by timer");
+    } else {
+        Serial1.println("Initial boot (not from deep sleep)");
+    }
 
     // Init Display
     hspi.begin(EPD_SCK_PIN, -1, EPD_MOSI_PIN, -1);
@@ -227,7 +280,18 @@ void setup() {
 
     WiFi.disconnect(true);
     digitalWrite(LED_PIN, HIGH); // LED OFF
-    esp_sleep_enable_timer_wakeup(sleepMinutes * 60ULL * 1000000ULL);
+
+    // Configure wake sources
+    esp_sleep_enable_timer_wakeup(sleepMinutes * 60ULL * 1000000ULL);  // Timer wake
+
+    // Enable button wake: GREEN button on GPIO3
+    // Button is active LOW (INPUT_PULLUP, pressed = LOW), so wake on LOW
+    if (BUTTON_WAKEUP_ENABLED) {
+        esp_sleep_enable_ext0_wakeup((gpio_num_t)BUTTON_PIN, LOW);  // Wake when button pulled LOW
+        Serial1.printf("Button wake enabled on GPIO%d - press green button anytime to refresh\n", BUTTON_PIN);
+    }
+
+    Serial1.printf("Sleeping for %d minutes (or until button press)\n", sleepMinutes);
     display.hibernate();
     esp_deep_sleep_start();
 }
