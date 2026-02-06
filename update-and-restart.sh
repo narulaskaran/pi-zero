@@ -7,11 +7,17 @@
 # Crontab entry:
 #   */15 * * * * ~/pi-zero/update-and-restart.sh >> ~/logs/update.log 2>&1
 
-REPO_DIR="~/pi-zero"
+REPO_DIR="$HOME/pi-zero"
 SERVICE_NAME="subway-display"
 LOG_PREFIX="[$(date '+%Y-%m-%d %H:%M:%S')]"
 
 cd "$REPO_DIR" || exit 1
+
+# Stash any local changes to prevent merge conflicts
+if ! git diff-index --quiet HEAD --; then
+    echo "$LOG_PREFIX Local changes detected, stashing..."
+    git stash push -m "Auto-stash before update $(date '+%Y-%m-%d %H:%M:%S')"
+fi
 
 # Fetch latest from remote
 git fetch origin main
