@@ -148,6 +148,9 @@ void setup() {
         retries++;
     }
 
+    // Default sleep interval (fallback if WiFi fails)
+    int sleepMinutes = DEFAULT_SLEEP_MINUTES;
+
     if (WiFi.status() == WL_CONNECTED) {
         Serial1.println("\nConnected!");
 
@@ -163,7 +166,7 @@ void setup() {
         }
 
         // Get dynamic refresh rate
-        int sleepMinutes = getRefreshRate();
+        sleepMinutes = getRefreshRate();
 
         // Read battery and build display URL
         float batteryPct = -1;
