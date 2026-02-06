@@ -5,6 +5,11 @@
 # This script compiles and uploads the Arduino sketch to a reTerminal device
 # over the network using OTA (Over-The-Air) updates.
 #
+# ⚠️  WARNING: Requires significant RAM for ESP32 compilation!
+#     - Raspberry Pi Zero (512MB): NOT SUPPORTED - use laptop/desktop instead
+#     - Raspberry Pi 3/4/5: Supported
+#     - Laptop/Desktop: Recommended
+#
 # Usage:
 #   ./upload-ota.sh [hostname_or_ip]
 #
@@ -15,6 +20,22 @@
 #
 
 set -e  # Exit on error
+
+# Check if running on Pi Zero
+if [ -f /proc/device-tree/model ]; then
+    MODEL=$(cat /proc/device-tree/model)
+    if echo "$MODEL" | grep -qi "Pi Zero"; then
+        echo "⚠️  ERROR: Running on Raspberry Pi Zero"
+        echo "This device has insufficient RAM for ESP32 compilation."
+        echo ""
+        echo "Please use your laptop/desktop for OTA updates instead:"
+        echo "  arduino-cli compile --fqbn esp32:esp32:esp32s3 ."
+        echo "  arduino-cli upload --fqbn esp32:esp32:esp32s3 -p $1 ."
+        echo ""
+        echo "Or use Arduino IDE: Tools → Port → Network Ports → reterminal-display"
+        exit 1
+    fi
+fi
 
 # Configuration
 DEFAULT_HOSTNAME="reterminal-display.local"

@@ -118,8 +118,10 @@ python3 get_train_times.py
 **OTA Firmware Updates:**
 - Arduino firmware includes ArduinoOTA support for wireless updates
 - After initial USB flash, all future updates can be done over WiFi
-- `upload-ota.sh` script automates OTA uploads from Raspberry Pi
+- **OTA from laptop/desktop recommended** (Arduino IDE or arduino-cli)
+- `upload-ota.sh` script available for Pi 3/4/5 (NOT Pi Zero - insufficient RAM)
 - 10-second OTA window after each wake cycle
+- Pi Zero users: Compile on development machine due to 512MB RAM limitation
 
 **Configuration Consolidation:**
 - **Single Config File**: `config.yaml` contains all user-specific settings:

@@ -222,20 +222,53 @@ Upload via Arduino IDE:
 
 #### 5. Optional: Set Up OTA Updates (Recommended)
 
-For future firmware updates without USB:
+For future firmware updates without USB, you can upload wirelessly from your development machine.
 
+**⚠️ Note for Pi Zero Users**: Pi Zero (512MB RAM) cannot run arduino-cli due to memory constraints during ESP32 compilation. Use your laptop/desktop instead.
+
+**On your laptop/desktop (with Arduino IDE):**
+
+1. **Install Arduino IDE** (if not already installed):
+   - Download from: https://www.arduino.cc/en/software
+   - Install ESP32 board support:
+     - File → Preferences → Additional Board Manager URLs
+     - Add: `https://raw.githubusercontent.com/espressif/arduino-esp32/gh-pages/package_esp32_index.json`
+     - Tools → Board → Boards Manager → Search "esp32" → Install
+
+2. **Future firmware updates**:
+   ```bash
+   # Edit your local .ino file
+   cd /path/to/pi-zero/subway_train_times/reterminal-sketch/
+   # Make your changes...
+
+   # Open in Arduino IDE
+   open reterminal-sketch.ino
+
+   # Upload via OTA:
+   # - Tools → Board → ESP32 Arduino → ESP32S3 Dev Module
+   # - Tools → Port → Network Ports → reterminal-display
+   # - Click Upload
+   ```
+
+**Alternative: Using arduino-cli on laptop** (faster):
 ```bash
-# On Raspberry Pi, install arduino-cli
+# One-time setup on laptop
 curl -fsSL https://raw.githubusercontent.com/arduino/arduino-cli/master/install.sh | sh
 sudo mv bin/arduino-cli /usr/local/bin/
 arduino-cli config init
 arduino-cli core update-index
 arduino-cli core install esp32:esp32
 
-# Future updates (after changing .ino code):
-cd ~/pi-zero/subway_train_times
-./upload-ota.sh
+# Future updates
+cd /path/to/pi-zero/subway_train_times/reterminal-sketch/
+arduino-cli compile --fqbn esp32:esp32:esp32s3 .
+arduino-cli upload --fqbn esp32:esp32:esp32s3 -p reterminal-display.local .
 ```
+
+**Tips:**
+- reTerminal must be powered on and connected to WiFi
+- OTA window is 10 seconds after wake cycle - may need to retry
+- If OTA fails repeatedly, fallback to USB upload
 
 ### Testing
 
