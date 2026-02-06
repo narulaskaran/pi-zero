@@ -96,3 +96,53 @@ python3 get_train_times.py
 - Only request trains that actually stop at the station (e.g., B/C are local at 81st St, not A/D/E/F/M which are express)
 - Stop IDs differ between lines at the same physical station (e.g., 81st St has A21 for ACE and D14 for BDFM)
 - The `config.yaml` pattern is gitignored globally to protect user privacy
+
+**reTerminal E-ink Display Integration:**
+- Flask server (`subway_server.py`) generates BMP images for reTerminal e-ink screen
+- ESP32-based Arduino firmware fetches images and displays them
+- Supports both `/display.bmp` and `/display.png` endpoints
+
+**Dynamic Refresh Rate System:**
+- Automatically adjusts display update frequency based on phone presence and time of day
+- **1-minute updates** when user's phone detected on WiFi (fast refresh when home)
+- **30-minute updates** when no phones detected (slow refresh when away)
+- **Night mode**: 30-minute updates between 1am-7am regardless of presence
+- Presence detection via `presence_detector.py` module:
+  - Two methods: `arp-scan` (fast, requires sudo) or `dhcp-leases` (slower, no sudo)
+  - 30-second result caching to prevent network spam
+  - Supports multiple MAC addresses (user phone, partner phone, etc.)
+- Arduino queries `/refresh-rate` endpoint to get dynamic sleep interval
+- Battery monitoring (optional): Arduino sends battery percentage to server for display
+- Configuration in `config.yaml` → `refresh_rate` section
+
+**OTA Firmware Updates:**
+- Arduino firmware includes ArduinoOTA support for wireless updates
+- After initial USB flash, all future updates can be done over WiFi
+- `upload-ota.sh` script automates OTA uploads from Raspberry Pi
+- 10-second OTA window after each wake cycle
+
+**Configuration Consolidation:**
+- **Single Config File**: `config.yaml` contains all user-specific settings:
+  - Server host/port (`server` section)
+  - Station configurations (`stations` section)
+  - Refresh rate settings (`refresh_rate` section)
+- **Arduino .ino File**: WiFi credentials and server URL only (gitignored via `*.ino` pattern)
+  - Required for hardware initialization (chicken-and-egg problem)
+  - One-time setup, never committed to git
+  - `.ino.example` template provided with placeholders
+
+**Deployment:**
+- Zero-touch updates via `update-and-restart.sh` cron job
+- Auto-installs Python dependencies after git pull
+- Runs every 15 minutes via cron
+
+**Security Model & Sudoers Requirement:**
+- Systemd service (`subway-display.service`) uses `<USER>` placeholder - replace with actual username during setup
+- If service runs as **privileged user** (e.g., `User=<USER>` where <USER> is admin): sudo access included, no additional configuration needed
+- If service runs as **non-privileged user** (e.g., `User=pi`): sudoers rule required for arp-scan:
+  ```
+  pi ALL=(ALL) NOPASSWD: /usr/sbin/arp-scan
+  ```
+- `arp-scan` method requires root privileges for network scanning
+- **Alternative**: Use `detection_method: "dhcp-leases"` in config (no sudo required, but may be less reliable depending on DHCP server)
+- **Why this matters**: Without sudo access, arp-scan fails silently and presence detection always returns "no one home" (slow refresh rate)

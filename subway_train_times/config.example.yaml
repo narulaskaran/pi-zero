@@ -13,6 +13,13 @@
 #
 # Find stop IDs at: http://web.mta.info/developers/data/nyct/subway/Stations.csv
 # Find coordinates via Google Maps (right-click a location > select coordinates)
+
+# ============================================================================
+# SERVER CONFIGURATION
+# ============================================================================
+server:
+  host: "0.0.0.0"  # Listen on all interfaces (default: 0.0.0.0)
+  port: 5000       # Flask server port (default: 5000)
 #
 # The script automatically:
 #   - Determines which MTA feed to use based on routes
@@ -22,6 +29,41 @@
 
 # Number of upcoming trains to display per direction
 num_trains: 10
+
+# Dynamic refresh rate based on device proximity
+# The display refreshes more frequently when configured devices are nearby
+#
+# How to find MAC addresses:
+#   - Router/network admin panel: Check connected devices list
+#   - iPhone: Settings > General > About > Wi-Fi Address
+#   - Android: Settings > About Phone > Status > Wi-Fi MAC Address
+#   - macOS: System Settings > Network > Wi-Fi > Details > Hardware
+#   - Linux: Run 'ip link show' or 'ifconfig' in terminal
+#
+# Parameters:
+#   - devices: List of device MAC addresses to monitor for proximity
+#              Format: "XX:XX:XX:XX:XX:XX" (case-insensitive)
+#   - intervals: Refresh intervals in seconds for different states
+#       - fast: When devices are detected nearby (lower = more frequent updates)
+#       - slow: When no devices are detected (higher = conserves API calls)
+#       - night: During night hours regardless of presence (reduces activity)
+#   - night_hours: Time range when night interval applies
+#       - start: Hour to begin night mode (24-hour format, e.g., 1 = 1 AM)
+#       - end: Hour to end night mode (24-hour format, e.g., 7 = 7 AM)
+#   - detection_method: Method to detect device presence ("arp-scan" recommended)
+#
+refresh_rate:
+  devices:
+    - "AA:BB:CC:DD:EE:FF"  # Example: John's iPhone
+    - "11:22:33:44:55:66"  # Example: Jane's Android
+  intervals:
+    fast: 1                # Refresh every 1 second when devices are home
+    slow: 30               # Refresh every 30 seconds when no devices are home
+    night: 30              # Refresh every 30 seconds during night hours (1 AM - 7 AM)
+  night_hours:
+    start: 1               # Night mode starts at 1 AM
+    end: 7                 # Night mode ends at 7 AM
+  detection_method: "arp-scan"
 
 # Stations to monitor
 stations:

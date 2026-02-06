@@ -1,0 +1,232 @@
+/**
+ * reTerminal E1001 Subway Display (Stable)
+ * Logic: Fetches a 1-bit dithered image that LOOKS like grayscale.
+ * Features: Dynamic refresh rate, battery monitoring, OTA updates
+ */
+
+#include <WiFi.h>
+#include <HTTPClient.h>
+#include <GxEPD2_BW.h>
+#include <ArduinoOTA.h>
+
+// ==================== CONFIGURATION ====================
+const char* WIFI_SSID     = "YOUR_WIFI_SSID";
+const char* WIFI_PASSWORD = "YOUR_WIFI_PASSWORD";
+const char* PI_SERVER_URL = "http://YOUR_PI_IP:5000";
+const char* OTA_HOSTNAME   = "reterminal-display";
+
+const int DEFAULT_SLEEP_MINUTES = 5;
+const int BATTERY_ADC_PIN = 1;
+const float VOLTAGE_DIVIDER_RATIO = 2.0;
+
+const bool OTA_ENABLED = true;
+const int OTA_WAIT_SECONDS = 10;
+// =======================================================
+
+// ==================== PIN DEFINITIONS ====================
+#define EPD_SCK_PIN   7
+#define EPD_MOSI_PIN  9
+#define EPD_CS_PIN    10
+#define EPD_DC_PIN    11
+#define EPD_RES_PIN   12
+#define EPD_BUSY_PIN  13
+#define LED_PIN       6
+#define SERIAL_RX     44
+#define SERIAL_TX     43
+
+// ==================== DISPLAY SETUP ====================
+#define GxEPD2_DISPLAY_CLASS GxEPD2_BW
+#define GxEPD2_DRIVER_CLASS GxEPD2_750_GDEY075T7
+
+#define MAX_DISPLAY_BUFFER_SIZE 16000
+#define MAX_HEIGHT(EPD) (EPD::HEIGHT <= MAX_DISPLAY_BUFFER_SIZE / (EPD::WIDTH / 8) \
+    ? EPD::HEIGHT : MAX_DISPLAY_BUFFER_SIZE / (EPD::WIDTH / 8))
+
+SPIClass hspi(HSPI);
+GxEPD2_DISPLAY_CLASS<GxEPD2_DRIVER_CLASS, MAX_HEIGHT(GxEPD2_DRIVER_CLASS)>
+    display(GxEPD2_DRIVER_CLASS(EPD_CS_PIN, EPD_DC_PIN, EPD_RES_PIN, EPD_BUSY_PIN));
+
+// ==================== HELPER FUNCTIONS ====================
+float readBatteryPercentage() {
+    int rawValue = analogRead(BATTERY_ADC_PIN);
+    float voltage = (rawValue / 4095.0) * 3.3 * VOLTAGE_DIVIDER_RATIO;
+
+    // Convert voltage to percentage (assuming 3.0V-4.2V range for Li-ion)
+    float minVoltage = 3.0;
+    float maxVoltage = 4.2;
+    float percentage = ((voltage - minVoltage) / (maxVoltage - minVoltage)) * 100.0;
+
+    // Clamp to 0-100 range
+    if (percentage < 0) percentage = 0;
+    if (percentage > 100) percentage = 100;
+
+    return percentage;
+}
+
+int getRefreshRate() {
+    if (WiFi.status() != WL_CONNECTED) {
+        return DEFAULT_SLEEP_MINUTES;
+    }
+
+    HTTPClient http;
+    String url = String(PI_SERVER_URL) + "/refresh-rate";
+    http.begin(url);
+    http.setTimeout(5000);
+
+    int httpCode = http.GET();
+    int refreshMinutes = DEFAULT_SLEEP_MINUTES;
+
+    if (httpCode == 200) {
+        String payload = http.getString();
+
+        // Parse JSON response: {"refresh_minutes": 1, "reason": "device_present"}
+        int startIdx = payload.indexOf("\"refresh_minutes\":");
+        if (startIdx != -1) {
+            startIdx += 18; // Skip past the key
+            int endIdx = payload.indexOf(',', startIdx);
+            if (endIdx == -1) endIdx = payload.indexOf('}', startIdx);
+
+            String rateStr = payload.substring(startIdx, endIdx);
+            rateStr.trim();
+            int rate = rateStr.toInt();
+
+            if (rate > 0 && rate <= 1440) {
+                refreshMinutes = rate;
+            }
+        }
+    }
+
+    http.end();
+    return refreshMinutes;
+}
+
+void setupOTA() {
+    ArduinoOTA.setHostname(OTA_HOSTNAME);
+
+    ArduinoOTA.onStart([]() {
+        Serial1.println("OTA: Start");
+    });
+
+    ArduinoOTA.onEnd([]() {
+        Serial1.println("\nOTA: Complete");
+    });
+
+    ArduinoOTA.onProgress([](unsigned int progress, unsigned int total) {
+        Serial1.printf("OTA Progress: %u%%\r", (progress / (total / 100)));
+    });
+
+    ArduinoOTA.onError([](ota_error_t error) {
+        Serial1.printf("OTA Error[%u]: ", error);
+        if (error == OTA_AUTH_ERROR) Serial1.println("Auth Failed");
+        else if (error == OTA_BEGIN_ERROR) Serial1.println("Begin Failed");
+        else if (error == OTA_CONNECT_ERROR) Serial1.println("Connect Failed");
+        else if (error == OTA_RECEIVE_ERROR) Serial1.println("Receive Failed");
+        else if (error == OTA_END_ERROR) Serial1.println("End Failed");
+    });
+
+    ArduinoOTA.begin();
+}
+
+// ==================== MAIN LOGIC ====================
+void setup() {
+    Serial1.begin(115200, SERIAL_8N1, SERIAL_RX, SERIAL_TX);
+    pinMode(LED_PIN, OUTPUT);
+    digitalWrite(LED_PIN, LOW); // LED ON
+
+    // Init Display
+    hspi.begin(EPD_SCK_PIN, -1, EPD_MOSI_PIN, -1);
+    display.epd2.selectSPI(hspi, SPISettings(4000000, MSBFIRST, SPI_MODE0));
+    display.init(0);
+
+    // Connect WiFi
+    Serial1.print("Connecting to WiFi...");
+    WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
+    int retries = 0;
+    while (WiFi.status() != WL_CONNECTED && retries < 20) {
+        delay(500);
+        Serial1.print(".");
+        retries++;
+    }
+
+    if (WiFi.status() == WL_CONNECTED) {
+        Serial1.println("\nConnected!");
+
+        // Setup OTA if enabled
+        if (OTA_ENABLED) {
+            setupOTA();
+            Serial1.printf("OTA enabled. Waiting %d seconds...\n", OTA_WAIT_SECONDS);
+            unsigned long startTime = millis();
+            while (millis() - startTime < (OTA_WAIT_SECONDS * 1000)) {
+                ArduinoOTA.handle();
+                delay(100);
+            }
+        }
+
+        // Get dynamic refresh rate
+        int sleepMinutes = getRefreshRate();
+
+        // Read battery and build display URL
+        float batteryPct = -1;
+        if (BATTERY_ADC_PIN != -1) {
+            batteryPct = readBatteryPercentage();
+        }
+        Serial1.printf("Battery: %.1f%% | Refresh: %d min\n", batteryPct, sleepMinutes);
+
+        // Fetch display image with battery parameter
+        HTTPClient http;
+        String displayUrl = String(PI_SERVER_URL) + "/display.bmp";
+        if (batteryPct >= 0) {
+            displayUrl += "?battery=" + String((int)batteryPct);
+        }
+        http.begin(displayUrl);
+        int httpCode = http.GET();
+
+        if (httpCode == 200) {
+            int len = http.getSize();
+            // Standard Buffer for 1-bit image (~48KB)
+            if (len > 0 && len < 60000) {
+                uint8_t* buffer = (uint8_t*)malloc(len);
+                if (buffer) {
+                    WiFiClient* stream = http.getStreamPtr();
+                    stream->readBytes(buffer, len);
+
+                    // Basic BMP Parser for 1-bit
+                    int offset = buffer[10] | (buffer[11] << 8);
+                    int w = buffer[18] | (buffer[19] << 8);
+                    int h = buffer[22] | (buffer[23] << 8);
+
+                    display.setFullWindow();
+                    display.firstPage();
+                    do {
+                        display.fillScreen(GxEPD_WHITE);
+                        // Draw bitmap logic
+                         int rowSize = ((w + 31) / 32) * 4;
+                         bool flip = true;
+                         if (h < 0) { h = -h; flip = false; }
+
+                         for (int row=0; row<h; row++) {
+                             int y = flip ? (h - 1 - row) : row;
+                             uint8_t* ptr = buffer + offset + (row * rowSize);
+                             for (int col=0; col<w; col++) {
+                                 if (!((ptr[col/8] >> (7-(col%8))) & 1)) {
+                                     display.drawPixel(col, y, GxEPD_BLACK);
+                                 }
+                             }
+                         }
+                    } while (display.nextPage());
+                    free(buffer);
+                    Serial1.println("Image Displayed");
+                }
+            }
+        }
+        http.end();
+    }
+
+    WiFi.disconnect(true);
+    digitalWrite(LED_PIN, HIGH); // LED OFF
+    esp_sleep_enable_timer_wakeup(sleepMinutes * 60ULL * 1000000ULL);
+    display.hibernate();
+    esp_deep_sleep_start();
+}
+
+void loop() {}
