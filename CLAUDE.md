@@ -6,6 +6,57 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 This is a collection of scripts for a Raspberry Pi Zero home server. Each project is self-contained in its own directory.
 
+## Repository Goals
+
+This repository serves as the **One Stop Shop** for initializing and provisioning new Raspberry Pi devices. The core objectives are:
+
+- **Automation**: Enable rapid, hands-free setup of new Pi devices with minimal manual intervention
+- **Reproducibility**: Ensure consistent environments across different Pi devices through scripted configuration
+- **Modularity**: Maintain self-contained projects that can be deployed independently or together
+- **Documentation**: Provide clear, comprehensive documentation for both humans and AI assistants
+
+**Expected Directory Structure:**
+```
+pi-zero/
+├── setup.sh              # Main provisioning script (run as root)
+├── CLAUDE.md             # This file - AI assistant guidelines
+├── project_name/         # Each project in its own directory
+│   ├── README.md         # Project-specific documentation
+│   ├── config.example.*  # Configuration templates (actual configs gitignored)
+│   └── ...               # Project files
+└── ...
+```
+
+## Build/Run Commands
+
+**Initial Setup (New Pi):**
+```bash
+sudo ./setup.sh
+```
+Run this script on a fresh Raspberry Pi to perform initial system provisioning. The script handles system updates, dependency installation, and configuration.
+
+**Running Individual Projects:**
+Each project has its own execution method documented in its directory. See the Projects section below for details.
+
+## Style Guide
+
+**Shell Scripts:**
+- **Idempotency**: All scripts must be idempotent - safe to run multiple times without adverse effects
+- **Functions**: Use shell functions to improve readability and maintainability
+- **Error Handling**: Check return codes and fail gracefully with meaningful error messages
+- **Comments**: Document non-obvious logic and complex operations
+
+**Documentation:**
+- **Separation**: Keep documentation close to code - each hardware/project folder should have its own README.md
+- **Structure**: Use consistent markdown formatting with clear headings and code blocks
+- **Examples**: Provide example configurations and usage patterns
+- **Privacy**: Never commit actual API keys, personal configurations, or sensitive data
+
+**Configuration Files:**
+- Provide `.example` templates in the repository
+- Gitignore actual configuration files (e.g., `config.yaml`, `.env`)
+- Document all required and optional configuration parameters
+
 ## Projects
 
 ### subway_train_times
