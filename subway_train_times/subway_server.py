@@ -11,7 +11,7 @@ from pathlib import Path
 import yaml
 import requests
 import yfinance as yf
-from flask import Flask, send_file
+from flask import Flask, send_file, request, jsonify
 from PIL import Image, ImageDraw, ImageFont
 from nyct_gtfs import NYCTFeed
 
@@ -20,9 +20,16 @@ try:
 except ImportError:
     ROUTE_TO_FEED = {}
 
+try:
+    from presence_detector import PresenceDetector
+except ImportError:
+    PresenceDetector = None
+
 app = Flask(__name__)
 
 # ============ CONFIG ============
+# Global presence detector (initialized on first use)
+_presence_detector = None
 DISPLAY_WIDTH = 800
 DISPLAY_HEIGHT = 480
 
@@ -69,6 +76,67 @@ def load_config():
             return yaml.safe_load(f)
     except:
         return {}
+
+
+def get_presence_detector():
+    """Get or initialize the global presence detector."""
+    global _presence_detector
+    if _presence_detector is None and PresenceDetector is not None:
+        config = load_config()
+        refresh_config = config.get("refresh_rate", {})
+        devices = refresh_config.get("devices", [])
+        if devices:
+            _presence_detector = PresenceDetector(mac_addresses=devices)
+    return _presence_detector
+
+
+def calculate_refresh_rate():
+    """
+    Calculate the appropriate refresh rate in seconds based on:
+    - Time of day (night mode)
+    - Device presence (someone home)
+
+    Returns:
+        int: Refresh interval in seconds
+    """
+    config = load_config()
+    refresh_config = config.get("refresh_rate", {})
+
+    # Get configured intervals (with defaults)
+    intervals = refresh_config.get("intervals", {})
+    fast_rate = intervals.get("fast", 1)  # 1 second default
+    slow_rate = intervals.get("slow", 30)  # 30 seconds default
+    night_rate = intervals.get("night", 30)  # 30 seconds default
+
+    # Get night mode hours (default 1 AM - 7 AM)
+    night_hours = refresh_config.get("night_hours", {})
+    night_start = night_hours.get("start", 1)
+    night_end = night_hours.get("end", 7)
+
+    # Check if it's night time (priority over presence)
+    current_hour = datetime.now().hour
+    is_night = False
+    if night_start > night_end:  # Overnight period (e.g., 23-6)
+        is_night = current_hour >= night_start or current_hour < night_end
+    else:  # Same-day period (e.g., 1-7)
+        is_night = night_start <= current_hour < night_end
+
+    # Night mode takes priority
+    if is_night:
+        return night_rate
+
+    # Check presence if enabled
+    detector = get_presence_detector()
+    if detector is not None:
+        try:
+            is_home = detector.is_anyone_home()
+            return fast_rate if is_home else slow_rate
+        except Exception:
+            # On error, default to slow rate
+            return slow_rate
+
+    # No presence detection configured, use fast rate
+    return fast_rate
 
 
 # ============ DATA ============
@@ -218,7 +286,7 @@ def draw_train_block(draw, x, y, train, font_bul, font_time, is_first=False):
         )
 
 
-def generate_image():
+def generate_image(battery_percent=None):
     img = Image.new("L", (DISPLAY_WIDTH, DISPLAY_HEIGHT), color=COLOR_WHITE)
     draw = ImageDraw.Draw(img)
 
@@ -345,12 +413,72 @@ def generate_image():
             draw_centered_text(draw, cx - 12, fy + 75, f"{hi}°", f_med, align="center")
             draw.text((cx + 12, fy + 82), f"{lo}°", font=f_tiny, fill=COLOR_GRAY)
 
+    # --- BATTERY INDICATOR (top middle, subtle) ---
+    if battery_percent is not None:
+        batt_x = (DISPLAY_WIDTH // 2) - 30  # Center horizontally
+        batt_y = 8  # Top, subtle positioning
+
+        # Battery icon (simple rectangle with terminal)
+        battery_width = 50
+        battery_height = 20
+        terminal_width = 4
+        terminal_height = 10
+
+        # Draw battery body
+        draw.rectangle(
+            [batt_x, batt_y, batt_x + battery_width, batt_y + battery_height],
+            outline=COLOR_BLACK,
+            width=2
+        )
+
+        # Draw battery terminal
+        draw.rectangle(
+            [
+                batt_x + battery_width,
+                batt_y + (battery_height - terminal_height) // 2,
+                batt_x + battery_width + terminal_width,
+                batt_y + (battery_height + terminal_height) // 2
+            ],
+            fill=COLOR_BLACK
+        )
+
+        # Fill battery based on percentage
+        if battery_percent > 0:
+            fill_width = int((battery_width - 6) * battery_percent / 100)
+            draw.rectangle(
+                [batt_x + 3, batt_y + 3, batt_x + 3 + fill_width, batt_y + battery_height - 3],
+                fill=COLOR_BLACK
+            )
+
+        # Draw percentage text
+        batt_text = f"{battery_percent}%"
+        draw.text((batt_x + battery_width + terminal_width + 6, batt_y + 2), batt_text, font=f_tiny, fill=COLOR_BLACK)
+
     return img
+
+
+@app.route("/refresh-rate")
+def get_refresh_rate():
+    """Return the current refresh rate in seconds as JSON."""
+    try:
+        refresh_rate = calculate_refresh_rate()
+        return jsonify({"refresh_rate": refresh_rate})
+    except Exception as e:
+        # On error, return a safe default
+        return jsonify({"refresh_rate": 120, "error": str(e)}), 500
 
 
 @app.route("/display.bmp")
 def serve_bmp():
-    img = generate_image()
+    # Get optional battery parameter (0-100)
+    battery_param = request.args.get("battery", type=int)
+
+    # Validate battery parameter
+    if battery_param is not None:
+        if not (0 <= battery_param <= 100):
+            battery_param = None  # Invalid value, ignore it
+
+    img = generate_image(battery_percent=battery_param)
 
     # === CRITICAL FIX ===
     # Convert to 1-bit B&W using dithering.
@@ -376,4 +504,11 @@ def serve_png():
 
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000)
+    # Load server config from config.yaml
+    config = load_config()
+    server_config = config.get("server", {})
+    host = server_config.get("host", "0.0.0.0")
+    port = server_config.get("port", 5000)
+
+    print(f"Starting Flask server on {host}:{port}")
+    app.run(host=host, port=port)
