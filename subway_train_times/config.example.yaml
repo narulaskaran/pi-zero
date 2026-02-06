@@ -57,9 +57,9 @@ refresh_rate:
     - "AA:BB:CC:DD:EE:FF"  # Example: John's iPhone
     - "11:22:33:44:55:66"  # Example: Jane's Android
   intervals:
-    fast: 1                # Refresh every 1 second when devices are home
-    slow: 30               # Refresh every 30 seconds when no devices are home
-    night: 30              # Refresh every 30 seconds during night hours (1 AM - 7 AM)
+    fast: 60               # Refresh every 60 seconds (1 minute) when devices are home
+    slow: 1800             # Refresh every 1800 seconds (30 minutes) when no devices are home
+    night: 1800            # Refresh every 1800 seconds (30 minutes) during night hours (1 AM - 7 AM)
   night_hours:
     start: 1               # Night mode starts at 1 AM
     end: 7                 # Night mode ends at 7 AM

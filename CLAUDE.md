@@ -104,16 +104,17 @@ python3 get_train_times.py
 
 **Dynamic Refresh Rate System:**
 - Automatically adjusts display update frequency based on phone presence and time of day
-- **1-minute updates** when user's phone detected on WiFi (fast refresh when home)
-- **30-minute updates** when no phones detected (slow refresh when away)
-- **Night mode**: 30-minute updates between 1am-7am regardless of presence
+- **Fast refresh** when user's phone detected on WiFi (default: 1 second = ~1 minute with Arduino conversion)
+- **Slow refresh** when no phones detected (default: 30 seconds = ~30 minutes with Arduino conversion)
+- **Night mode**: Uses slow refresh between 1am-7am regardless of presence
 - Presence detection via `presence_detector.py` module:
   - Two methods: `arp-scan` (fast, requires sudo) or `dhcp-leases` (slower, no sudo)
   - 30-second result caching to prevent network spam
   - Supports multiple MAC addresses (user phone, partner phone, etc.)
-- Arduino queries `/refresh-rate` endpoint to get dynamic sleep interval
+- `/refresh-rate` endpoint returns interval in seconds (Arduino interprets as minutes for sleep duration)
 - Battery monitoring (optional): Arduino sends battery percentage to server for display
-- Configuration in `config.yaml` → `refresh_rate` section
+- Configuration in `config.yaml` → `refresh_rate` → `intervals` (values in seconds)
+- **Note:** Server returns `{"refresh_rate": <seconds>}` but Arduino code looks for `{"refresh_minutes": <value>}` - verify compatibility
 
 **OTA Firmware Updates:**
 - Arduino firmware includes ArduinoOTA support for wireless updates
@@ -134,9 +135,11 @@ python3 get_train_times.py
   - `.ino.example` template provided with placeholders
 
 **Deployment:**
-- Zero-touch updates via `update-and-restart.sh` cron job
-- Auto-installs Python dependencies after git pull
-- Runs every 15 minutes via cron
+- Zero-touch updates via `update-and-restart.sh` cron job (runs every 15 minutes)
+- Script automatically stashes local changes before git pull to prevent conflicts
+- Auto-installs Python dependencies after successful update
+- Requires execute permissions: `chmod +x update-and-restart.sh`
+- Crontab entry: `*/15 * * * * ~/pi-zero/update-and-restart.sh >> ~/logs/update.log 2>&1`
 
 **Security Model & Sudoers Requirement:**
 - Systemd service (`subway-display.service`) uses `<USER>` placeholder - replace with actual username during setup
@@ -148,3 +151,17 @@ python3 get_train_times.py
 - `arp-scan` method requires root privileges for network scanning
 - **Alternative**: Use `detection_method: "dhcp-leases"` in config (no sudo required, but may be less reliable depending on DHCP server)
 - **Why this matters**: Without sudo access, arp-scan fails silently and presence detection always returns "no one home" (slow refresh rate)
+
+## Common Issues & Fixes
+
+**Git Permission Errors:**
+- If `update-and-restart.sh` fails with "insufficient permission for adding an object to repository database":
+  ```bash
+  sudo chown -R $USER:$USER ~/pi-zero/.git
+  ```
+- This happens when git operations were run as different users (e.g., root vs normal user)
+
+**Next Update Time Display Bug (Fixed):**
+- Prior bug: "Next update" time was calculated using `timedelta(minutes=...)` when `calculate_refresh_rate()` returns seconds
+- This caused the display to show update times 30 minutes in the future instead of 30 seconds
+- Fixed in commit a06b03d: Changed to `timedelta(seconds=...)` with proper variable naming
