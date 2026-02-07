@@ -472,13 +472,19 @@ def generate_image(battery_percent=None):
 
 @app.route("/refresh-rate")
 def get_refresh_rate():
-    """Return the current refresh rate in seconds as JSON."""
+    """Return the current refresh rate in minutes as JSON.
+
+    The Arduino firmware expects {"refresh_minutes": N} where N is the
+    number of minutes to sleep between display updates. The internal
+    calculate_refresh_rate() returns seconds, so we convert here.
+    """
     try:
-        refresh_rate = calculate_refresh_rate()
-        return jsonify({"refresh_rate": refresh_rate})
+        refresh_seconds = calculate_refresh_rate()
+        refresh_minutes = max(1, refresh_seconds // 60)
+        return jsonify({"refresh_minutes": refresh_minutes})
     except Exception as e:
-        # On error, return a safe default
-        return jsonify({"refresh_rate": 120, "error": str(e)}), 500
+        # On error, return a safe default (2 minutes)
+        return jsonify({"refresh_minutes": 2, "error": str(e)}), 500
 
 
 @app.route("/display.bmp")
