@@ -33,20 +33,28 @@ num_trains: 10
 # Dynamic refresh rate based on device proximity
 # The display refreshes more frequently when configured devices are nearby
 #
-# How to find MAC addresses:
-#   - Router/network admin panel: Check connected devices list
+# IMPORTANT: Disable MAC randomization/Private Wi-Fi Address on your devices!
+#   - iPhone: Settings → Wi-Fi → (i) next to network → Turn OFF "Private Wi-Fi Address"
+#   - Android: Settings → Wi-Fi → Network → Advanced → Privacy → "Use device MAC"
+#   Without this, your phone will use a random MAC address that changes frequently,
+#   making presence detection unreliable.
+#
+# How to find your device's MAC address:
+#   - Router/network admin panel: Check connected devices list (most reliable)
 #   - iPhone: Settings > General > About > Wi-Fi Address
 #   - Android: Settings > About Phone > Status > Wi-Fi MAC Address
 #   - macOS: System Settings > Network > Wi-Fi > Details > Hardware
 #   - Linux: Run 'ip link show' or 'ifconfig' in terminal
+#   - Command line: ssh into Pi and run 'sudo arp-scan --localnet' to see all devices
 #
 # Parameters:
 #   - devices: List of device MAC addresses to monitor for proximity
-#              Format: "XX:XX:XX:XX:XX:XX" (case-insensitive)
-#   - intervals: Refresh intervals in seconds for different states
-#       - fast: When devices are detected nearby (lower = more frequent updates)
-#       - slow: When no devices are detected (higher = conserves API calls)
-#       - night: During night hours regardless of presence (reduces activity)
+#              Format: "xx:xx:xx:xx:xx:xx" (colons, not hyphens - case-insensitive)
+#              Example: "68:44:65:21:50:36" ✓  NOT "68-44-65-21-50-36" ✗
+#   - intervals: Refresh intervals in SECONDS for different states
+#       - fast: When devices are detected nearby (recommended: 60 = 1 minute)
+#       - slow: When no devices detected (recommended: 1800 = 30 minutes)
+#       - night: During night hours regardless of presence (recommended: 1800 = 30 minutes)
 #   - night_hours: Time range when night interval applies
 #       - start: Hour to begin night mode (24-hour format, e.g., 1 = 1 AM)
 #       - end: Hour to end night mode (24-hour format, e.g., 7 = 7 AM)
@@ -54,8 +62,8 @@ num_trains: 10
 #
 refresh_rate:
   devices:
-    - "AA:BB:CC:DD:EE:FF"  # Example: John's iPhone
-    - "11:22:33:44:55:66"  # Example: Jane's Android
+    - "68:44:65:21:50:36"  # Example: Your iPhone (use colons, not hyphens!)
+    - "10:da:63:63:45:28"  # Example: Partner's Android phone
   intervals:
     fast: 60               # Refresh every 60 seconds (1 minute) when devices are home
     slow: 1800             # Refresh every 1800 seconds (30 minutes) when no devices are home

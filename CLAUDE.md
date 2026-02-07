@@ -104,17 +104,20 @@ python3 get_train_times.py
 
 **Dynamic Refresh Rate System:**
 - Automatically adjusts display update frequency based on phone presence and time of day
-- **Fast refresh** when user's phone detected on WiFi (default: 1 second = ~1 minute with Arduino conversion)
-- **Slow refresh** when no phones detected (default: 30 seconds = ~30 minutes with Arduino conversion)
-- **Night mode**: Uses slow refresh between 1am-7am regardless of presence
+- **Fast refresh** when user's phone detected on WiFi (recommended: 60 seconds = 1 minute)
+- **Slow refresh** when no phones detected (recommended: 1800 seconds = 30 minutes)
+- **Night mode**: Uses slow refresh between 1am-7am regardless of presence (recommended: 1800 seconds = 30 minutes)
 - Presence detection via `presence_detector.py` module:
   - Two methods: `arp-scan` (fast, requires sudo) or `dhcp-leases` (slower, no sudo)
   - 30-second result caching to prevent network spam
   - Supports multiple MAC addresses (user phone, partner phone, etc.)
-- `/refresh-rate` endpoint returns interval in seconds (Arduino interprets as minutes for sleep duration)
+- `/refresh-rate` endpoint returns `{"refresh_minutes": N}` where N is calculated from config seconds ÷ 60
 - Battery monitoring (optional): Arduino sends battery percentage to server for display
-- Configuration in `config.yaml` → `refresh_rate` → `intervals` (values in seconds)
-- **Note:** Server returns `{"refresh_rate": <seconds>}` but Arduino code looks for `{"refresh_minutes": <value>}` - verify compatibility
+- **Configuration in `config.yaml`** → `refresh_rate` → `intervals`:
+  - Values are in **SECONDS** (not minutes!)
+  - Example: `fast: 60` means 60 seconds = 1 minute refresh when home
+  - Server converts to minutes for Arduino: 60 seconds → 1 minute sleep
+  - Avoid very low values (e.g., 1-10 seconds) as they drain battery quickly
 
 **OTA Firmware Updates:**
 - Arduino firmware includes ArduinoOTA support for wireless updates
@@ -151,6 +154,24 @@ python3 get_train_times.py
 - `arp-scan` method requires root privileges for network scanning
 - **Alternative**: Use `detection_method: "dhcp-leases"` in config (no sudo required, but may be less reliable depending on DHCP server)
 - **Why this matters**: Without sudo access, arp-scan fails silently and presence detection always returns "no one home" (slow refresh rate)
+
+**Presence Detection - MAC Address Requirements:**
+- **CRITICAL**: MAC addresses in `config.yaml` must use **colons** (`:`) not hyphens (`-`)
+  - ✓ Correct: `"68:44:65:21:50:36"`
+  - ✗ Wrong: `"68-44-65-21-50-36"`
+- arp-scan outputs MAC addresses with colons; hyphenated MACs will never match
+- Case-insensitive (both uppercase and lowercase work)
+
+**MAC Randomization / Private Wi-Fi Address (Common Issue):**
+- Modern phones use MAC randomization for privacy, which breaks presence detection
+- Symptoms: Phone appears/disappears randomly, or shows as "(Unknown: locally administered)"
+- **Solution**: Disable MAC randomization for your home network on each device
+  - **iPhone**: Settings → Wi-Fi → (i) next to network → Turn OFF "Private Wi-Fi Address" → Reconnect
+  - **Android**: Settings → Wi-Fi → Network → Advanced → Privacy → "Use device MAC" → Reconnect
+- After disabling, find the real MAC address:
+  - Check router's connected devices page (most reliable)
+  - Run on Pi: `sudo arp-scan --localnet | grep -v "locally administered"`
+  - Look for new devices that appear after reconnecting
 
 ## Common Issues & Fixes
 
