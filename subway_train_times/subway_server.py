@@ -5,6 +5,7 @@ Subway Dashboard - 1-Bit Dithered Fix
 
 import io
 import os
+import logging
 from datetime import datetime, timedelta
 from pathlib import Path
 
@@ -14,6 +15,14 @@ import yfinance as yf
 from flask import Flask, send_file, request, jsonify
 from PIL import Image, ImageDraw, ImageFont
 from nyct_gtfs import NYCTFeed
+
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s [%(levelname)s] %(name)s: %(message)s',
+    datefmt='%Y-%m-%d %H:%M:%S'
+)
+logger = logging.getLogger(__name__)
 
 try:
     from get_train_times import ROUTE_TO_FEED
@@ -86,7 +95,13 @@ def get_presence_detector():
         refresh_config = config.get("refresh_rate", {})
         devices = refresh_config.get("devices", [])
         if devices:
-            _presence_detector = PresenceDetector(mac_addresses=devices)
+            # Initialize with 10-minute grace period (600 seconds)
+            _presence_detector = PresenceDetector(
+                mac_addresses=devices,
+                cache_duration=30,
+                grace_period_seconds=600
+            )
+            logger.info(f"Initialized presence detector with {len(devices)} devices and 10-minute grace period")
     return _presence_detector
 
 
@@ -95,6 +110,9 @@ def calculate_refresh_rate():
     Calculate the appropriate refresh rate in seconds based on:
     - Time of day (night mode)
     - Device presence (someone home)
+
+    FAIL-OPEN BEHAVIOR: If presence detection fails, defaults to fast_rate
+    to ensure fresh data when user is actually home.
 
     Returns:
         int: Refresh interval in seconds
@@ -123,6 +141,7 @@ def calculate_refresh_rate():
 
     # Night mode takes priority
     if is_night:
+        logger.info(f"🌙 Night mode active ({current_hour}:00 is between {night_start}:00-{night_end}:00) → {night_rate}s refresh")
         return night_rate
 
     # Check presence if enabled
@@ -130,12 +149,21 @@ def calculate_refresh_rate():
     if detector is not None:
         try:
             is_home = detector.is_anyone_home()
-            return fast_rate if is_home else slow_rate
-        except Exception:
-            # On error, default to slow rate
-            return slow_rate
+            if is_home:
+                logger.info(f"🏠 HOME detected → {fast_rate}s refresh ({fast_rate//60}min)")
+                return fast_rate
+            else:
+                logger.info(f"🚪 AWAY detected → {slow_rate}s refresh ({slow_rate//60}min)")
+                return slow_rate
+        except Exception as e:
+            # FAIL-OPEN: On error, default to fast rate (assume home)
+            # Better to refresh too often than miss updates when actually home
+            logger.warning(f"⚠️  Presence detection failed, FAIL-OPEN to fast rate → {fast_rate}s refresh ({fast_rate//60}min)")
+            logger.warning(f"    Exception: {e}")
+            return fast_rate
 
     # No presence detection configured, use fast rate
+    logger.info(f"No presence detection configured → {fast_rate}s refresh")
     return fast_rate
 
 
@@ -481,10 +509,59 @@ def get_refresh_rate():
     try:
         refresh_seconds = calculate_refresh_rate()
         refresh_minutes = max(1, refresh_seconds // 60)
+        logger.debug(f"Returning refresh_minutes={refresh_minutes} to Arduino")
         return jsonify({"refresh_minutes": refresh_minutes})
     except Exception as e:
         # On error, return a safe default (2 minutes)
+        logger.error(f"Error in get_refresh_rate: {e}")
         return jsonify({"refresh_minutes": 2, "error": str(e)}), 500
+
+
+@app.route("/status")
+def get_status():
+    """Debug endpoint showing current presence detection state."""
+    try:
+        detector = get_presence_detector()
+        config = load_config()
+        refresh_config = config.get("refresh_rate", {})
+
+        status = {
+            "timestamp": datetime.now().isoformat(),
+            "presence_detection_enabled": detector is not None,
+        }
+
+        if detector:
+            # Get current presence state
+            try:
+                is_home = detector.is_anyone_home()
+                status["is_home"] = is_home
+            except Exception as e:
+                status["is_home"] = None
+                status["presence_error"] = str(e)
+
+            # Get detector state
+            status["configured_devices"] = len(detector.mac_addresses)
+            status["last_seen_at"] = detector._last_seen_at.isoformat() if detector._last_seen_at else None
+            status["grace_period_active"] = detector._is_within_grace_period()
+            status["grace_period_remaining_seconds"] = detector._get_grace_period_remaining()
+            status["cache_valid"] = detector._is_cache_valid()
+
+        # Get refresh rate info
+        refresh_seconds = calculate_refresh_rate()
+        status["current_refresh_seconds"] = refresh_seconds
+        status["current_refresh_minutes"] = refresh_seconds // 60
+
+        intervals = refresh_config.get("intervals", {})
+        status["configured_intervals"] = {
+            "fast": intervals.get("fast", 1),
+            "slow": intervals.get("slow", 30),
+            "night": intervals.get("night", 30),
+        }
+
+        return jsonify(status)
+    except Exception as e:
+        logger.error(f"Error in get_status: {e}")
+        return jsonify({"error": str(e)}), 500
 
 
 @app.route("/display.bmp")
