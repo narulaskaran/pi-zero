@@ -15,7 +15,8 @@ display:
   # Refresh interval in SECONDS
   # Since the display is powered by the Pi (no battery), we can refresh frequently
   # Recommended: 30-60 seconds
-  refresh_interval: 30
+  # This also controls how often presence detection runs (shared with subway_train_times)
+  refresh_interval: 45
 
   # Partial refresh settings
   # Partial refreshes are faster but can cause ghosting after many updates

@@ -36,14 +36,18 @@ try:
 except ImportError:
     PresenceDetector = None
 
+try:
+    from shared_presence_state import SharedPresenceState
+except ImportError:
+    SharedPresenceState = None
+
 app = Flask(__name__)
 
 # ============ CONFIG ============
 # Global presence detector (initialized on first use)
+# Note: Presence detection is now handled by Waveshare display (every 45s)
+# and shared via file. This detector is only used as fallback.
 _presence_detector = None
-_background_polling_thread = None
-_background_polling_active = False
-BACKGROUND_POLL_INTERVAL = 30  # Poll every 30 seconds
 DISPLAY_WIDTH = 800
 DISPLAY_HEIGHT = 480
 
@@ -110,56 +114,6 @@ def get_presence_detector():
     return _presence_detector
 
 
-def background_presence_polling():
-    """
-    Background thread that continuously polls for device presence.
-
-    This ensures that when you come home, your presence is detected within
-    30 seconds, even if the Arduino is in slow-refresh mode (30 minutes).
-    Without this, you could wait up to an hour for fast refresh to kick in.
-    """
-    global _background_polling_active
-    logger.info(f"🔄 Background presence polling started (every {BACKGROUND_POLL_INTERVAL}s)")
-
-    while _background_polling_active:
-        try:
-            detector = get_presence_detector()
-            if detector is not None:
-                # Force a fresh check (ignore cache)
-                detector._cached_result = None
-                detector._cache_timestamp = None
-
-                # This will run detection and update _last_seen_at if found
-                is_home = detector.is_anyone_home()
-                logger.debug(f"🔄 Background poll: {'HOME' if is_home else 'AWAY'}")
-            else:
-                logger.debug("🔄 Background poll: No detector configured")
-
-        except Exception as e:
-            logger.error(f"🔄 Background poll error: {e}")
-
-        # Sleep for the poll interval
-        time.sleep(BACKGROUND_POLL_INTERVAL)
-
-    logger.info("🔄 Background presence polling stopped")
-
-
-def start_background_polling():
-    """Start the background presence polling thread."""
-    global _background_polling_thread, _background_polling_active
-
-    if _background_polling_thread is not None and _background_polling_thread.is_alive():
-        logger.warning("Background polling thread already running")
-        return
-
-    _background_polling_active = True
-    _background_polling_thread = threading.Thread(
-        target=background_presence_polling,
-        daemon=True,  # Exit when main thread exits
-        name="PresencePoller"
-    )
-    _background_polling_thread.start()
-    logger.info("✓ Background polling thread started")
 
 
 def calculate_refresh_rate():
@@ -202,17 +156,38 @@ def calculate_refresh_rate():
         return night_rate
 
     # Check presence if enabled
-    # Note: Background thread polls every 30s and updates presence state,
-    # so this just reads the cached result (no blocking arp-scan here)
+    # Note: Waveshare display polls every 45s and writes to shared file.
+    # We just read from that file - no blocking arp-scan in request path!
+    if SharedPresenceState is not None:
+        try:
+            # Try reading from shared state file first
+            is_home, timestamp, is_stale = SharedPresenceState.read_state()
+
+            if is_home is not None and not is_stale:
+                # Got fresh state from Waveshare
+                if is_home:
+                    logger.info(f"🏠 HOME (from Waveshare cache) → {fast_rate}s refresh ({fast_rate//60}min)")
+                    return fast_rate
+                else:
+                    logger.info(f"🚪 AWAY (from Waveshare cache) → {slow_rate}s refresh ({slow_rate//60}min)")
+                    return slow_rate
+
+            # Shared state is stale or missing - fall back to direct detection
+            logger.debug("Shared state stale/missing, falling back to direct detection")
+
+        except Exception as e:
+            logger.warning(f"Failed to read shared state: {e}")
+
+    # Fallback: Direct detection (only if shared state unavailable)
     detector = get_presence_detector()
     if detector is not None:
         try:
             is_home = detector.is_anyone_home()
             if is_home:
-                logger.info(f"🏠 HOME detected → {fast_rate}s refresh ({fast_rate//60}min)")
+                logger.info(f"🏠 HOME (fallback detection) → {fast_rate}s refresh ({fast_rate//60}min)")
                 return fast_rate
             else:
-                logger.info(f"🚪 AWAY detected → {slow_rate}s refresh ({slow_rate//60}min)")
+                logger.info(f"🚪 AWAY (fallback detection) → {slow_rate}s refresh ({slow_rate//60}min)")
                 return slow_rate
         except Exception as e:
             # FAIL-OPEN: On error, default to fast rate (assume home)
@@ -580,30 +555,27 @@ def get_refresh_rate():
 def get_status():
     """Debug endpoint showing current presence detection state."""
     try:
-        detector = get_presence_detector()
         config = load_config()
         refresh_config = config.get("refresh_rate", {})
 
         status = {
             "timestamp": datetime.now().isoformat(),
-            "presence_detection_enabled": detector is not None,
+            "architecture": "shared_state_file",
+            "note": "Presence detection handled by Waveshare display (every 45s)",
         }
 
-        if detector:
-            # Get current presence state
-            try:
-                is_home = detector.is_anyone_home()
-                status["is_home"] = is_home
-            except Exception as e:
-                status["is_home"] = None
-                status["presence_error"] = str(e)
+        # Get shared state info
+        if SharedPresenceState is not None:
+            shared_state_info = SharedPresenceState.get_state_info()
+            status["shared_state"] = shared_state_info
 
-            # Get detector state
-            status["configured_devices"] = len(detector.mac_addresses)
-            status["last_seen_at"] = detector._last_seen_at.isoformat() if detector._last_seen_at else None
-            status["grace_period_active"] = detector._is_within_grace_period()
-            status["grace_period_remaining_seconds"] = detector._get_grace_period_remaining()
-            status["cache_valid"] = detector._is_cache_valid()
+            # Get current presence from shared state
+            is_home, timestamp, is_stale = SharedPresenceState.read_state()
+            if is_home is not None:
+                status["is_home"] = is_home
+                status["is_home_source"] = "shared_state" if not is_stale else "shared_state_stale"
+        else:
+            status["shared_state"] = {"error": "SharedPresenceState module not available"}
 
         # Get refresh rate info
         refresh_seconds = calculate_refresh_rate()
@@ -665,12 +637,6 @@ if __name__ == "__main__":
     host = server_config.get("host", "0.0.0.0")
     port = server_config.get("port", 5000)
 
-    # Start background presence polling if detector is configured
-    detector = get_presence_detector()
-    if detector is not None:
-        start_background_polling()
-    else:
-        logger.info("No presence detection configured, background polling disabled")
-
+    logger.info("Presence detection handled by Waveshare display (shared state file)")
     logger.info(f"Starting Flask server on {host}:{port}")
     app.run(host=host, port=port)

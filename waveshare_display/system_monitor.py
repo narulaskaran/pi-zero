@@ -20,12 +20,16 @@ class SystemMonitor:
         self._init_presence_detector()
 
     def _init_presence_detector(self):
-        """Initialize presence detector if available."""
+        """Initialize presence detector and shared state writer."""
         try:
             import sys
             sys.path.insert(0, str(Path(__file__).parent.parent / "subway_train_times"))
             from presence_detector import PresenceDetector
+            from shared_presence_state import SharedPresenceState
             import yaml
+
+            # Store SharedPresenceState reference
+            self.shared_state = SharedPresenceState
 
             # Try to load config
             config_path = Path(__file__).parent / "config.yaml"
@@ -40,11 +44,16 @@ class SystemMonitor:
                 devices = refresh_config.get("devices", [])
 
                 if devices:
-                    self.presence_detector = PresenceDetector(mac_addresses=devices)
+                    self.presence_detector = PresenceDetector(
+                        mac_addresses=devices,
+                        grace_period_seconds=600  # 10-minute grace period
+                    )
                     print(f"Presence detector initialized with {len(devices)} device(s)")
+                    print(f"Will write presence state to shared file for subway_train_times")
         except Exception as e:
             print(f"Presence detector not available: {e}")
             self.presence_detector = None
+            self.shared_state = None
 
     def get_cpu_temp(self):
         """
@@ -145,6 +154,7 @@ class SystemMonitor:
     def is_anyone_home(self):
         """
         Check if anyone is home using presence detection.
+        Also writes result to shared state file for subway_train_times.
 
         Returns:
             bool or None: True if home, False if away, None if unavailable
@@ -153,8 +163,21 @@ class SystemMonitor:
             return None
 
         try:
-            return self.presence_detector.is_anyone_home()
-        except:
+            is_home = self.presence_detector.is_anyone_home()
+
+            # Write to shared state file for subway_train_times to use
+            if self.shared_state is not None and is_home is not None:
+                try:
+                    self.shared_state.write_state(
+                        is_home=is_home,
+                        devices_found=self.presence_detector.mac_addresses if is_home else []
+                    )
+                except Exception as e:
+                    print(f"Warning: Failed to write shared presence state: {e}")
+
+            return is_home
+        except Exception as e:
+            print(f"Warning: Presence detection failed: {e}")
             return None
 
     def get_all_stats(self):
