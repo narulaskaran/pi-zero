@@ -1,0 +1,20 @@
+# Waveshare E-Paper Display Dependencies - Pi Stats Monitor
+
+# System monitoring
+psutil>=5.9.0
+
+# Image processing
+Pillow>=10.0.0
+
+# YAML configuration
+PyYAML>=6.0
+
+# SPI interface (install with: sudo pip3 install spidev)
+# spidev>=3.5
+
+# Note: spidev requires system-level installation with sudo
+# Run: sudo pip3 install spidev
+
+# Note: The Waveshare e-Paper library (waveshare_epd) is expected to be
+# installed at ~/e-Paper/RaspberryPi_JetsonNano/python/lib/
+# Download from: https://github.com/waveshare/e-Paper

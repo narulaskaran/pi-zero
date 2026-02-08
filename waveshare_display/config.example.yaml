@@ -1,0 +1,48 @@
+# Waveshare E-Paper Display Configuration
+# Pi Stats Monitor - Shows system information on e-Paper display
+
+# ============================================================================
+# DISPLAY HARDWARE CONFIGURATION
+# ============================================================================
+display:
+  # Hardware version of your Waveshare 2.13" E-Paper HAT
+  # Check the label on your HAT - it will say V2, V3, or V4
+  # V2: Older model with black/white only
+  # V3: Newer model with improved refresh (RECOMMENDED)
+  # V4: Latest model (no partial refresh support)
+  version: "V3"
+
+  # Refresh interval in SECONDS
+  # Since the display is powered by the Pi (no battery), we can refresh frequently
+  # Recommended: 30-60 seconds
+  refresh_interval: 30
+
+  # Partial refresh settings
+  # Partial refreshes are faster but can cause ghosting after many updates
+  # The display will automatically do a full refresh every N partial updates
+  max_partial_refreshes: 10  # Full refresh after this many partial updates
+
+# ============================================================================
+# PRESENCE DETECTION (Optional)
+# ============================================================================
+# If configured, the display will show HOME/AWAY status based on device presence
+# Uses the same presence detection as subway_train_times
+# If not configured, presence status won't be shown
+
+refresh_rate:
+  devices:
+    - "68:44:65:21:50:36"  # Example: Your phone MAC address (colons, not hyphens!)
+    - "10:da:63:63:45:28"  # Example: Partner's phone
+  detection_method: "arp-scan"
+
+# ============================================================================
+# SYSTEM STATS DISPLAYED
+# ============================================================================
+# The display shows:
+# - Current time and date
+# - CPU temperature (°C)
+# - RAM usage (percentage + bar graph)
+# - WiFi status (SSID + signal strength bars)
+# - Presence status (HOME/AWAY) if configured
+
+# All stats are collected automatically - no additional configuration needed

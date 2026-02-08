@@ -1,0 +1,24 @@
+# Configuration files (user-specific)
+config.yaml
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+*.egg-info/
+dist/
+build/
+
+# Test outputs
+/tmp/*.png
+/tmp/*.bmp
+
+# Logs
+*.log
+
+# macOS
+.DS_Store

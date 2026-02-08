@@ -173,6 +173,147 @@ python3 get_train_times.py
   - Run on Pi: `sudo arp-scan --localnet | grep -v "locally administered"`
   - Look for new devices that appear after reconnecting
 
+### waveshare_display
+
+Raspberry Pi system monitor displayed on Waveshare 2.13" E-Paper HAT (250×122 pixels, monochrome).
+
+**Purpose:**
+Real-time system dashboard showing:
+- Current time and date
+- CPU temperature (°C)
+- RAM usage (percentage + bar graph)
+- WiFi status (SSID + signal strength indicators)
+- Presence detection (HOME/AWAY based on device proximity)
+
+**Key Architecture:**
+- **Direct GPIO control**: Communicates with e-Paper HAT via SPI
+- **Frequent refresh**: Updates every 30-60 seconds (no battery constraints)
+- **Power efficient**: E-paper with partial refresh support and sleep mode between updates
+- **Shared presence detection**: Reuses `presence_detector.py` from `subway_train_times`
+- **Layout optimized for 250×122**: Three-column stats layout with visual indicators
+
+**Hardware Specifications:**
+- Display: 250×122 pixels, monochrome (black/white), ~2s full refresh
+- Interface: SPI (display control only, no touch on this model)
+- Power: Directly from Pi GPIO (no battery)
+- Connection: 40-pin GPIO header (no wiring needed)
+
+**Setup:**
+```bash
+# Enable SPI in raspi-config
+sudo raspi-config  # → Interfacing Options → SPI → Enable, then reboot
+
+# Install Waveshare drivers
+cd ~
+git clone https://github.com/waveshare/e-Paper.git
+
+# Install dependencies
+sudo apt-get install python3-pil python3-numpy
+sudo pip3 install spidev
+cd ~/pi-zero/waveshare_display
+pip3 install -r requirements.txt
+
+# Configure
+cp config.example.yaml config.yaml
+nano config.yaml  # Set display version (V2/V3/V4), check HAT label
+```
+
+**Running:**
+```bash
+# Manual test
+cd ~/pi-zero/waveshare_display
+python3 pi_stats_display.py --once     # Single update
+python3 pi_stats_display.py            # Continuous (30s refresh)
+
+# Custom refresh interval
+python3 pi_stats_display.py --interval 60  # Every 60 seconds
+
+# Run as systemd service
+sudo cp pi-stats.service /etc/systemd/system/
+sudo nano /etc/systemd/system/pi-stats.service  # Replace <USER>
+sudo systemctl daemon-reload
+sudo systemctl enable pi-stats.service
+sudo systemctl start pi-stats.service
+```
+
+**File Structure:**
+- `pi_stats_display.py` - Main display loop (30-60s refresh)
+- `system_monitor.py` - Collects CPU temp, RAM, WiFi, presence
+- `epaper_driver.py` - Waveshare HAT driver wrapper (V2/V3/V4)
+- `renderer.py` - Renders 250×122 layout with stats
+- `config.yaml` - User configuration (gitignored)
+
+**Display Layout:**
+```
+┌─────────────────────────────┐
+│ 3:45 PM       Fri Feb 8     │  ← Time + Date
+├─────────────────────────────┤
+│ CPU      RAM       WiFi     │  ← Labels
+│ 45.2°C   62%     MyNetwork  │  ← Values
+│          [████   ]  [▮▮▮▯]  │  ← RAM bar + signal
+├─────────────────────────────┤
+│          HOME               │  ← Presence
+└─────────────────────────────┘
+```
+
+**Configuration (`config.yaml`):**
+```yaml
+display:
+  version: "V3"           # HAT version (check label: V2/V3/V4)
+  refresh_interval: 30    # Seconds between updates (30-60 recommended)
+  max_partial_refreshes: 10  # Full refresh every N partial updates
+
+# Optional: Presence detection (shares config with subway_train_times)
+refresh_rate:
+  devices:
+    - "68:44:65:21:50:36"  # Phone MAC (use colons!)
+  detection_method: "arp-scan"
+```
+
+**Driver Path Configuration:**
+- Drivers expected at `~/e-Paper/RaspberryPi_JetsonNano/python/lib/`
+- Script uses `from waveshare_epd import epd2in13_V3` (not `TP_lib`)
+- Systemd service sets `PYTHONPATH` automatically
+- Download from: https://github.com/waveshare/e-Paper
+
+**Display Version Detection:**
+- Hardware version (V2/V3/V4) must be set in `config.yaml`
+- Check physical label on HAT
+- **V3 recommended**: Best partial refresh support
+- **V4**: No partial refresh (always full refresh)
+
+**Partial Refresh Strategy:**
+- **Partial refresh**: Fast (~0.3s), less flicker, but can cause ghosting
+- **Full refresh**: Slow (~2s), full flicker, clears ghosting
+- Automatically does full refresh every 10 partial updates
+- Run `--clear` to force full refresh and clear ghosting
+
+**Refresh Rate:**
+Since display is powered by Pi (no battery), frequent refresh is fine:
+- **Recommended**: 30-60 seconds (good balance)
+- **Faster**: 10+ seconds (causes more e-paper wear)
+- **Slower**: Any duration (e-paper holds image indefinitely)
+
+**Integration with subway_train_times:**
+- Shares `presence_detector.py` for HOME/AWAY detection
+- Can read config from parent `subway_train_times/config.yaml`
+- Runs independently, no conflicts with other services
+
+**System Stats Collection:**
+- **CPU temp**: Uses `vcgencmd` (Pi-specific) or `/sys/class/thermal`
+- **RAM usage**: `psutil.virtual_memory()` (percentage + MB used/total)
+- **WiFi**: `iwgetid` for SSID, `iwconfig` for signal strength (dBm → bars)
+- **Presence**: `arp-scan` or `dhcp-leases` (same as subway_train_times)
+
+**Troubleshooting:**
+- **"No module named 'waveshare_epd'"**: Install drivers: `cd ~ && git clone https://github.com/waveshare/e-Paper.git`
+- **"SPI device not found"**: Enable SPI in `raspi-config` → Interfacing Options → SPI
+- **Display shows garbage**: Wrong version in config, check HAT label (V2/V3/V4)
+- **CPU temp shows N/A**: Try with sudo or check if `vcgencmd` is available
+- **WiFi not showing**: Verify connection with `iwgetid -r`
+- **Presence detection not working**: See subway_train_times docs for arp-scan troubleshooting
+- **Ghosting/artifacts**: Run `python3 pi_stats_display.py --clear`
+
 ## Common Issues & Fixes
 
 **Git Permission Errors:**
