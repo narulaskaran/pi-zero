@@ -107,9 +107,16 @@ python3 get_train_times.py
 - **Fast refresh** when user's phone detected on WiFi (recommended: 60 seconds = 1 minute)
 - **Slow refresh** when no phones detected (recommended: 1800 seconds = 30 minutes)
 - **Night mode**: Uses slow refresh between 1am-7am regardless of presence (recommended: 1800 seconds = 30 minutes)
+- **Shared presence detection architecture**:
+  - `waveshare_display` polls every 45s and writes to `/tmp/presence_state.json`
+  - `subway_server` reads from shared file (no arp-scan in request path!)
+  - reTerminal gets instant responses (~67ms vs 5s+ with arp-scan)
+  - Only ONE arp-scan across entire system every 45 seconds
 - Presence detection via `presence_detector.py` module:
   - Two methods: `arp-scan` (fast, requires sudo) or `dhcp-leases` (slower, no sudo)
   - 30-second result caching to prevent network spam
+  - **10-minute grace period**: Stays "HOME" for 10 min after last detection (handles WiFi power-saving)
+  - **Fail-open behavior**: Defaults to fast refresh on errors (better to refresh often than miss updates)
   - Supports multiple MAC addresses (user phone, partner phone, etc.)
 - `/refresh-rate` endpoint returns `{"refresh_minutes": N}` where N is calculated from config seconds ÷ 60
 - Battery monitoring (optional): Arduino sends battery percentage to server for display
@@ -187,9 +194,11 @@ Real-time system dashboard showing:
 
 **Key Architecture:**
 - **Direct GPIO control**: Communicates with e-Paper HAT via SPI
-- **Frequent refresh**: Updates every 30-60 seconds (no battery constraints)
+- **Frequent refresh**: Updates every 45 seconds (no battery constraints)
 - **Power efficient**: E-paper with partial refresh support and sleep mode between updates
-- **Shared presence detection**: Reuses `presence_detector.py` from `subway_train_times`
+- **Primary presence detector**: Polls network every 45s and writes to `/tmp/presence_state.json`
+  - `subway_train_times` reads from this shared file (eliminates duplicate arp-scans)
+  - Optimized architecture: Only ONE arp-scan system-wide every 45 seconds
 - **Layout optimized for 250×122**: Three-column stats layout with visual indicators
 
 **Hardware Specifications:**
@@ -223,7 +232,7 @@ nano config.yaml  # Set display version (V2/V3/V4), check HAT label
 # Manual test
 cd ~/pi-zero/waveshare_display
 python3 pi_stats_display.py --once     # Single update
-python3 pi_stats_display.py            # Continuous (30s refresh)
+python3 pi_stats_display.py            # Continuous (45s refresh, default)
 
 # Custom refresh interval
 python3 pi_stats_display.py --interval 60  # Every 60 seconds
@@ -290,14 +299,17 @@ refresh_rate:
 
 **Refresh Rate:**
 Since display is powered by Pi (no battery), frequent refresh is fine:
-- **Recommended**: 30-60 seconds (good balance)
+- **Default**: 45 seconds (optimal for presence detection sharing)
+- **Range**: 30-60 seconds (good balance)
 - **Faster**: 10+ seconds (causes more e-paper wear)
 - **Slower**: Any duration (e-paper holds image indefinitely)
 
 **Integration with subway_train_times:**
-- Shares `presence_detector.py` for HOME/AWAY detection
+- **Primary presence detector**: Polls network every 45s and writes to `/tmp/presence_state.json`
+- `subway_train_times` reads presence from this shared file (no duplicate arp-scans)
+- Shares `presence_detector.py` module with 10-minute grace period
 - Can read config from parent `subway_train_times/config.yaml`
-- Runs independently, no conflicts with other services
+- Optimized architecture: reTerminal gets instant responses (~67ms) without blocking arp-scan
 
 **System Stats Collection:**
 - **CPU temp**: Uses `vcgencmd` (Pi-specific) or `/sys/class/thermal`
