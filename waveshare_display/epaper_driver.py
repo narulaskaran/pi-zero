@@ -12,15 +12,17 @@ from pathlib import Path
 
 # Add Waveshare driver directory to Python path
 EPAPER_LIB = Path.home() / "e-Paper" / "RaspberryPi_JetsonNano" / "python" / "lib"
-if EPAPER_LIB.exists():
-    sys.path.insert(0, str(EPAPER_LIB))
+sys.path.insert(0, str(EPAPER_LIB))
 
 try:
     from waveshare_epd import epdconfig
-except ImportError:
-    print(f"Error: Waveshare driver library not found at {EPAPER_LIB}")
-    print("Please install the Waveshare e-Paper library first.")
-    print("Download from: https://github.com/waveshare/e-Paper")
+except ImportError as e:
+    print(f"Error importing waveshare_epd: {e}")
+    print(f"Tried to load from: {EPAPER_LIB}")
+    print(f"Path exists: {EPAPER_LIB.exists()}")
+    print(f"sys.path: {sys.path[:3]}")
+    print("\nPlease install the Waveshare e-Paper library:")
+    print("  cd ~ && git clone https://github.com/waveshare/e-Paper.git")
     sys.exit(1)
 
 
