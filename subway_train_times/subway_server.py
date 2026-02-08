@@ -6,6 +6,8 @@ Subway Dashboard - 1-Bit Dithered Fix
 import io
 import os
 import logging
+import threading
+import time
 from datetime import datetime, timedelta
 from pathlib import Path
 
@@ -39,6 +41,9 @@ app = Flask(__name__)
 # ============ CONFIG ============
 # Global presence detector (initialized on first use)
 _presence_detector = None
+_background_polling_thread = None
+_background_polling_active = False
+BACKGROUND_POLL_INTERVAL = 30  # Poll every 30 seconds
 DISPLAY_WIDTH = 800
 DISPLAY_HEIGHT = 480
 
@@ -105,6 +110,58 @@ def get_presence_detector():
     return _presence_detector
 
 
+def background_presence_polling():
+    """
+    Background thread that continuously polls for device presence.
+
+    This ensures that when you come home, your presence is detected within
+    30 seconds, even if the Arduino is in slow-refresh mode (30 minutes).
+    Without this, you could wait up to an hour for fast refresh to kick in.
+    """
+    global _background_polling_active
+    logger.info(f"🔄 Background presence polling started (every {BACKGROUND_POLL_INTERVAL}s)")
+
+    while _background_polling_active:
+        try:
+            detector = get_presence_detector()
+            if detector is not None:
+                # Force a fresh check (ignore cache)
+                detector._cached_result = None
+                detector._cache_timestamp = None
+
+                # This will run detection and update _last_seen_at if found
+                is_home = detector.is_anyone_home()
+                logger.debug(f"🔄 Background poll: {'HOME' if is_home else 'AWAY'}")
+            else:
+                logger.debug("🔄 Background poll: No detector configured")
+
+        except Exception as e:
+            logger.error(f"🔄 Background poll error: {e}")
+
+        # Sleep for the poll interval
+        time.sleep(BACKGROUND_POLL_INTERVAL)
+
+    logger.info("🔄 Background presence polling stopped")
+
+
+def start_background_polling():
+    """Start the background presence polling thread."""
+    global _background_polling_thread, _background_polling_active
+
+    if _background_polling_thread is not None and _background_polling_thread.is_alive():
+        logger.warning("Background polling thread already running")
+        return
+
+    _background_polling_active = True
+    _background_polling_thread = threading.Thread(
+        target=background_presence_polling,
+        daemon=True,  # Exit when main thread exits
+        name="PresencePoller"
+    )
+    _background_polling_thread.start()
+    logger.info("✓ Background polling thread started")
+
+
 def calculate_refresh_rate():
     """
     Calculate the appropriate refresh rate in seconds based on:
@@ -145,6 +202,8 @@ def calculate_refresh_rate():
         return night_rate
 
     # Check presence if enabled
+    # Note: Background thread polls every 30s and updates presence state,
+    # so this just reads the cached result (no blocking arp-scan here)
     detector = get_presence_detector()
     if detector is not None:
         try:
@@ -606,5 +665,12 @@ if __name__ == "__main__":
     host = server_config.get("host", "0.0.0.0")
     port = server_config.get("port", 5000)
 
-    print(f"Starting Flask server on {host}:{port}")
+    # Start background presence polling if detector is configured
+    detector = get_presence_detector()
+    if detector is not None:
+        start_background_polling()
+    else:
+        logger.info("No presence detection configured, background polling disabled")
+
+    logger.info(f"Starting Flask server on {host}:{port}")
     app.run(host=host, port=port)
