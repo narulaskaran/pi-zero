@@ -70,8 +70,11 @@ nano config.yaml
 
 Edit the config:
 - Set your display version (V2, V3, or V4 - check label on HAT)
-- Set refresh interval (recommended: 30-60 seconds)
+- Set refresh interval (recommended: 45 seconds)
 - Optionally configure presence detection (uses same config as subway_train_times)
+
+**Note on Presence Detection:**
+This display serves as the primary presence detector for the entire system. It polls the network every 45 seconds and writes results to `/tmp/presence_state.json`, which `subway_train_times` reads from. This eliminates duplicate arp-scans and gives the reTerminal instant responses.
 
 ### 6. Test the Display
 
