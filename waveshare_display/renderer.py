@@ -37,7 +37,8 @@ class SystemRenderer:
         ]
 
         fonts = {}
-        for size_name, size in [("huge", 32), ("large", 24), ("medium", 16), ("small", 12), ("tiny", 10)]:
+        # Smaller fonts to fit everything properly
+        for size_name, size in [("huge", 28), ("large", 18), ("medium", 13), ("small", 10), ("tiny", 8)]:
             fonts[size_name] = None
             for path in font_paths:
                 try:
@@ -94,55 +95,53 @@ class SystemRenderer:
 
         # === MIDDLE: System Stats (3 columns) ===
         middle_y = 42
-        col_width = self.WIDTH // 3
+        col1_x = 4
+        col2_x = 85
+        col3_x = 170
 
         # Column 1: CPU Temperature
         cpu_temp = stats.get("cpu_temp")
         if cpu_temp is not None:
-            temp_str = f"{cpu_temp:.1f}°C"
-            draw.text((8, middle_y), "CPU", font=self.fonts["tiny"], fill=0)
-            draw.text((8, middle_y + 12), temp_str, font=self.fonts["large"], fill=0)
+            temp_str = f"{cpu_temp:.0f}°C"
+            draw.text((col1_x, middle_y), "CPU", font=self.fonts["tiny"], fill=0)
+            draw.text((col1_x, middle_y + 10), temp_str, font=self.fonts["large"], fill=0)
         else:
-            draw.text((8, middle_y), "CPU", font=self.fonts["tiny"], fill=0)
-            draw.text((8, middle_y + 12), "N/A", font=self.fonts["medium"], fill=0)
+            draw.text((col1_x, middle_y), "CPU", font=self.fonts["tiny"], fill=0)
+            draw.text((col1_x, middle_y + 10), "N/A", font=self.fonts["medium"], fill=0)
 
         # Column 2: RAM Usage
         ram = stats.get("ram", {})
         ram_percent = ram.get("percent", 0)
         ram_str = f"{ram_percent:.0f}%"
-        draw.text((col_width + 8, middle_y), "RAM", font=self.fonts["tiny"], fill=0)
-        draw.text((col_width + 8, middle_y + 12), ram_str, font=self.fonts["large"], fill=0)
+        draw.text((col2_x, middle_y), "RAM", font=self.fonts["tiny"], fill=0)
+        draw.text((col2_x, middle_y + 10), ram_str, font=self.fonts["large"], fill=0)
 
         # Draw RAM bar graph (mini)
-        bar_x = col_width + 8
-        bar_y = middle_y + 40
-        bar_width = 50
-        bar_height = 8
+        bar_x = col2_x
+        bar_y = middle_y + 30
+        bar_width = 55
+        bar_height = 6
         draw.rectangle([(bar_x, bar_y), (bar_x + bar_width, bar_y + bar_height)], outline=0, width=1)
-        fill_width = int(bar_width * (ram_percent / 100))
+        fill_width = int((bar_width - 2) * (ram_percent / 100))
         if fill_width > 0:
-            draw.rectangle([(bar_x + 1, bar_y + 1), (bar_x + fill_width - 1, bar_y + bar_height - 1)], fill=0)
+            draw.rectangle([(bar_x + 1, bar_y + 1), (bar_x + 1 + fill_width, bar_y + bar_height - 1)], fill=0)
 
         # Column 3: WiFi Status
         wifi = stats.get("wifi", {})
         wifi_connected = wifi.get("connected", False)
         wifi_ssid = wifi.get("ssid", "")
 
-        draw.text((col_width * 2 + 8, middle_y), "WiFi", font=self.fonts["tiny"], fill=0)
+        draw.text((col3_x, middle_y), "WiFi", font=self.fonts["tiny"], fill=0)
 
         if wifi_connected:
-            # Truncate SSID if too long
-            ssid_display = wifi_ssid[:8] if len(wifi_ssid) > 8 else wifi_ssid
-            draw.text((col_width * 2 + 8, middle_y + 12), ssid_display, font=self.fonts["medium"], fill=0)
+            # Truncate SSID to fit (max 10 chars)
+            ssid_display = wifi_ssid[:10] if len(wifi_ssid) > 10 else wifi_ssid
+            draw.text((col3_x, middle_y + 10), ssid_display, font=self.fonts["small"], fill=0)
 
             # WiFi signal indicator (simple bars)
             signal = wifi.get("signal")
             if signal is not None:
-                # Convert dBm to bars (rough approximation)
-                # -30 to -50: Excellent (4 bars)
-                # -50 to -60: Good (3 bars)
-                # -60 to -70: Fair (2 bars)
-                # -70+: Poor (1 bar)
+                # Convert dBm to bars
                 if signal >= -50:
                     bars = 4
                 elif signal >= -60:
@@ -152,23 +151,23 @@ class SystemRenderer:
                 else:
                     bars = 1
 
-                # Draw signal bars
-                bar_x = col_width * 2 + 8
-                bar_y_base = middle_y + 35
+                # Draw signal bars (smaller)
+                bar_x = col3_x
+                bar_y_base = middle_y + 34
                 for i in range(4):
-                    bar_height = 4 + (i * 3)
+                    bar_h = 3 + (i * 2)
                     if i < bars:
                         draw.rectangle([
-                            (bar_x + i * 6, bar_y_base - bar_height),
-                            (bar_x + i * 6 + 4, bar_y_base)
+                            (bar_x + i * 5, bar_y_base - bar_h),
+                            (bar_x + i * 5 + 3, bar_y_base)
                         ], fill=0)
                     else:
                         draw.rectangle([
-                            (bar_x + i * 6, bar_y_base - bar_height),
-                            (bar_x + i * 6 + 4, bar_y_base)
+                            (bar_x + i * 5, bar_y_base - bar_h),
+                            (bar_x + i * 5 + 3, bar_y_base)
                         ], outline=0, width=1)
         else:
-            draw.text((col_width * 2 + 8, middle_y + 12), "No WiFi", font=self.fonts["small"], fill=0)
+            draw.text((col3_x, middle_y + 10), "No WiFi", font=self.fonts["small"], fill=0)
 
         # Divider line
         footer_y = 100

@@ -123,7 +123,7 @@ class EPaperDisplay:
         # V2/V3 partial refresh
         if self.partial_refresh_count == 0:
             # First partial refresh needs base image
-            self.epd.DisplayPartBaseImage(self.epd.getbuffer(image))
+            self.epd.displayPartBaseImage(self.epd.getbuffer(image))
 
         self.epd.displayPartial(self.epd.getbuffer(image))
         self.partial_refresh_count += 1
