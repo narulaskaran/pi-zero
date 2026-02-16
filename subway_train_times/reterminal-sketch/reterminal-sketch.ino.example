@@ -193,6 +193,7 @@ void setup() {
 
     // Connect WiFi
     Serial1.print("Connecting to WiFi...");
+    WiFi.persistent(false);  // Don't write WiFi config to flash every boot (saves flash wear)
     WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
     int retries = 0;
     while (WiFi.status() != WL_CONNECTED && retries < 20) {
@@ -205,7 +206,7 @@ void setup() {
     int sleepMinutes = DEFAULT_SLEEP_MINUTES;
 
     if (WiFi.status() == WL_CONNECTED) {
-        Serial1.println("\nConnected!");
+        Serial1.printf("\nConnected! (RSSI: %d dBm)\n", WiFi.RSSI());
 
         // Setup OTA if enabled
         if (OTA_ENABLED) {
@@ -234,22 +235,64 @@ void setup() {
         if (batteryPct >= 0) {
             displayUrl += "?battery=" + String((int)batteryPct);
         }
+
+        Serial1.print("Fetching: ");
+        Serial1.println(displayUrl);
+
         http.begin(displayUrl);
+        http.setTimeout(10000);  // 10 second timeout for image download
         int httpCode = http.GET();
+
+        Serial1.printf("HTTP Response: %d\n", httpCode);
 
         if (httpCode == 200) {
             int len = http.getSize();
+            Serial1.printf("Image size: %d bytes\n", len);
+
             // Standard Buffer for 1-bit image (~48KB)
             if (len > 0 && len < 60000) {
+                Serial1.println("Allocating buffer...");
                 uint8_t* buffer = (uint8_t*)malloc(len);
                 if (buffer) {
+                    Serial1.println("Reading image data...");
                     WiFiClient* stream = http.getStreamPtr();
-                    stream->readBytes(buffer, len);
+                    int bytesRead = 0;
+                    unsigned long readStart = millis();
+                    const unsigned long READ_TIMEOUT_MS = 15000;  // 15 second max for full image
+                    while (bytesRead < len && (millis() - readStart) < READ_TIMEOUT_MS) {
+                        int available = stream->available();
+                        if (available > 0) {
+                            int toRead = min(available, len - bytesRead);
+                            stream->readBytes(buffer + bytesRead, toRead);
+                            bytesRead += toRead;
+                        } else {
+                            delay(10);  // Brief wait for more data
+                        }
+                    }
+                    if (bytesRead < len) {
+                        Serial1.printf("WARNING: Only read %d/%d bytes (timeout)\n", bytesRead, len);
+                        free(buffer);
+                        http.end();
+                        // Skip display, go to sleep
+                        WiFi.disconnect(true);
+                        digitalWrite(LED_PIN, HIGH);
+                        esp_sleep_enable_timer_wakeup(sleepMinutes * 60ULL * 1000000ULL);
+                        if (BUTTON_WAKEUP_ENABLED) {
+                            esp_sleep_enable_ext0_wakeup((gpio_num_t)BUTTON_PIN, LOW);
+                        }
+                        Serial1.printf("Download failed - retrying in %d minutes\n", sleepMinutes);
+                        display.hibernate();
+                        esp_deep_sleep_start();
+                    }
+                    Serial1.printf("Data read complete (%d bytes in %lums)\n", bytesRead, millis() - readStart);
 
                     // Basic BMP Parser for 1-bit
                     int offset = buffer[10] | (buffer[11] << 8);
                     int w = buffer[18] | (buffer[19] << 8);
                     int h = buffer[22] | (buffer[23] << 8);
+
+                    Serial1.printf("BMP: %dx%d, offset=%d\n", w, h, offset);
+                    Serial1.println("Drawing to display...");
 
                     display.setFullWindow();
                     display.firstPage();
@@ -272,8 +315,14 @@ void setup() {
                     } while (display.nextPage());
                     free(buffer);
                     Serial1.println("Image Displayed");
+                } else {
+                    Serial1.println("ERROR: Buffer allocation failed!");
                 }
+            } else {
+                Serial1.printf("ERROR: Invalid image size: %d bytes\n", len);
             }
+        } else {
+            Serial1.printf("ERROR: HTTP request failed: %d\n", httpCode);
         }
         http.end();
     }
@@ -291,6 +340,7 @@ void setup() {
         Serial1.printf("Button wake enabled on GPIO%d - press green button anytime to refresh\n", BUTTON_PIN);
     }
 
+    Serial1.printf("Cycle took %lu ms total\n", millis());
     Serial1.printf("Sleeping for %d minutes (or until button press)\n", sleepMinutes);
     display.hibernate();
     esp_deep_sleep_start();
