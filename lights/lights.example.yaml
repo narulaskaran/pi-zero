@@ -1,0 +1,7 @@
+# Light registry — copy to lights.yaml and fill in your device IPs
+# lights.yaml is gitignored — never commit real IPs
+lights:
+  slurp:
+    ip: "192.168.0.X"  # Replace with actual IP
+    port: 5577
+    desc: "Zengge smart bulb"
