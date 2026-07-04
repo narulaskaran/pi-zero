@@ -314,3 +314,51 @@ curl http://localhost:5000/display.bmp?battery=75 > test.bmp
 - reTerminal must be awake (happens every 1-30 minutes)
 - OTA window is 10 seconds after wake - be quick or retry
 - Fallback: Use USB upload if OTA repeatedly fails
+
+## Agent Overlays (Hermes integration)
+
+External agents can push short-lived content cards ("overlays") onto the
+display — reminders, jokes, images — via an HTTP API on the Flask server.
+Overlays composite on top of the normal dashboard and expire automatically;
+the core time/battery header is never covered.
+
+**Slots:**
+
+| Slot | Region it takes over |
+|---|---|
+| `banner` | Footer forecast strip (full width, 800×120) |
+| `sidebar` | Finance column (200×245) |
+| `fullscreen` | Everything below the time/weather header |
+
+One overlay renders per slot (highest `priority`, then newest). An active
+`fullscreen` overlay suppresses the other slots.
+
+**API:**
+
+```bash
+# Push a reminder for 2 hours to the footer
+curl -X POST http://pi:5000/overlay -H 'Content-Type: application/json' -d '{
+  "slot": "banner", "title": "Reminder",
+  "text": "Cancun deposit due Sep 1", "ttl_seconds": 7200
+}'
+
+# Push an image card (base64 PNG/JPEG, dithered to 1-bit on render)
+curl -X POST http://pi:5000/overlay -d '{"slot": "fullscreen",
+  "title": "Happy Birthday!", "image_b64": "<base64>", "ttl_seconds": 3600}'
+
+curl http://pi:5000/overlays            # list unexpired (?active=1 for rendering now)
+curl -X DELETE http://pi:5000/overlay/<id>   # remove one
+curl -X DELETE http://pi:5000/overlays       # clear all
+```
+
+**Behavior notes:**
+
+- Every overlay expires: `ttl_seconds` (default 1 h, capped at 7 days) or an
+  ISO `expires_at`. `starts_at` schedules future cards.
+- Re-posting the same `id` replaces that overlay (idempotent updates).
+- State lives in `overlays.json` + `overlay_images/` (both gitignored);
+  expired entries are pruned automatically.
+- The e-ink display picks changes up on its next poll: ~1 min when someone
+  is home, up to 30 min when away or during night hours — size TTLs
+  accordingly.
+- Overlay rendering failures never break the base dashboard (fail-open).

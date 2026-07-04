@@ -44,3 +44,7 @@ Thumbs.db
 *.ino
 lights.yaml
 
+
+# Runtime overlay data (agent-pushed display cards)
+subway_train_times/overlays.json
+subway_train_times/overlay_images/

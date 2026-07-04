@@ -41,6 +41,11 @@ try:
 except ImportError:
     SharedPresenceState = None
 
+try:
+    import overlay_store
+except ImportError:
+    overlay_store = None
+
 app = Flask(__name__)
 
 # ============ CONFIG ============
@@ -348,6 +353,121 @@ def draw_train_block(draw, x, y, train, font_bul, font_time, is_first=False):
         )
 
 
+# ============ OVERLAYS ============
+# Regions that overlay slots may take over. Core data (time header, battery,
+# next-refresh) is never covered except by "fullscreen".
+OVERLAY_REGIONS = {
+    "sidebar": (600, 115, 800, 360),     # finance column
+    "banner": (0, 360, 800, 480),        # forecast footer
+    "fullscreen": (0, 115, 800, 480),    # everything below the header
+}
+
+
+def wrap_text(draw, text, font, max_width):
+    """Word-wrap text to fit max_width. Returns list of lines."""
+    lines = []
+    for paragraph in text.split("\n"):
+        words = paragraph.split()
+        if not words:
+            lines.append("")
+            continue
+        line = words[0]
+        for word in words[1:]:
+            candidate = f"{line} {word}"
+            if draw.textbbox((0, 0), candidate, font=font)[2] <= max_width:
+                line = candidate
+            else:
+                lines.append(line)
+                line = word
+        lines.append(line)
+    return lines
+
+
+def draw_overlay(img, draw, overlay):
+    """Composite one overlay card into its slot region."""
+    x0, y0, x1, y1 = OVERLAY_REGIONS[overlay["slot"]]
+    w, h = x1 - x0, y1 - y0
+    pad = 12
+
+    # Clear the region and frame it so it reads as a deliberate card.
+    draw.rectangle([x0, y0, x1 - 1, y1 - 1], fill=COLOR_WHITE)
+    draw.rectangle([x0 + 2, y0 + 2, x1 - 3, y1 - 3], outline=COLOR_BLACK, width=2)
+
+    content_x = x0 + pad
+    content_w = w - 2 * pad
+    cursor_y = y0 + pad
+
+    # Optional image: on the left for wide slots, on top for the sidebar.
+    image_path = overlay_store.get_image(overlay["id"]) if overlay.get("has_image") else None
+    if image_path:
+        try:
+            art = Image.open(image_path).convert("L")
+            if overlay["slot"] == "sidebar":
+                max_art = (content_w, h // 2 - pad)
+            elif overlay["slot"] == "fullscreen":
+                # Text below if any; give the image most of the space.
+                reserve = 70 if (overlay.get("title") or overlay.get("text")) else 0
+                max_art = (content_w, h - 2 * pad - reserve)
+            else:  # banner: image left, text right
+                max_art = (h - 2 * pad, h - 2 * pad)
+            art.thumbnail(max_art)
+            if overlay["slot"] == "banner":
+                img.paste(art, (content_x, y0 + (h - art.height) // 2))
+                content_x += art.width + pad
+                content_w -= art.width + pad
+            else:
+                img.paste(art, (x0 + (w - art.width) // 2, cursor_y))
+                cursor_y += art.height + 8
+        except Exception as e:
+            logger.warning(f"Overlay {overlay['id']}: failed to render image: {e}")
+
+    title = overlay.get("title") or ""
+    text = overlay.get("text") or ""
+
+    if overlay["slot"] == "sidebar":
+        f_title, f_body = get_font(24, True), get_font(18)
+    elif overlay["slot"] == "fullscreen":
+        f_title, f_body = get_font(44, True), get_font(28)
+    else:
+        f_title, f_body = get_font(30, True), get_font(22)
+
+    if title:
+        for line in wrap_text(draw, title, f_title, content_w):
+            if cursor_y > y1 - pad:
+                break
+            draw.text((content_x, cursor_y), line, font=f_title, fill=COLOR_BLACK)
+            cursor_y += getattr(f_title, "size", 24) + 4
+        cursor_y += 4
+    if text:
+        for line in wrap_text(draw, text, f_body, content_w):
+            if cursor_y > y1 - pad:
+                break
+            draw.text((content_x, cursor_y), line, font=f_body, fill=COLOR_BLACK)
+            cursor_y += getattr(f_body, "size", 20) + 4
+
+
+def apply_overlays(img, draw):
+    """Draw the highest-priority active overlay of each slot.
+
+    A fullscreen overlay covers the body, so sidebar/banner are skipped
+    while one is active.
+    """
+    if overlay_store is None:
+        return
+    try:
+        fullscreen = overlay_store.active("fullscreen")
+        if fullscreen:
+            draw_overlay(img, draw, fullscreen[0])
+            return
+        for slot in ("sidebar", "banner"):
+            candidates = overlay_store.active(slot)
+            if candidates:
+                draw_overlay(img, draw, candidates[0])
+    except Exception as e:
+        # Overlays must never break the core dashboard.
+        logger.error(f"Overlay rendering failed, showing base dashboard: {e}")
+
+
 def generate_image(battery_percent=None):
     img = Image.new("L", (DISPLAY_WIDTH, DISPLAY_HEIGHT), color=COLOR_WHITE)
     draw = ImageDraw.Draw(img)
@@ -529,6 +649,9 @@ def generate_image(battery_percent=None):
 
     draw.text((refresh_x, refresh_y), next_refresh_str, font=f_tiny, fill=COLOR_BLACK)
 
+    # --- OVERLAYS (agent-pushed cards; drawn last so they sit on top) ---
+    apply_overlays(img, draw)
+
     return img
 
 
@@ -562,6 +685,8 @@ def get_status():
             "timestamp": datetime.now().isoformat(),
             "architecture": "shared_state_file",
             "note": "Presence detection handled by Waveshare display (every 45s)",
+            "overlay_api": overlay_store is not None,
+            "active_overlays": len(overlay_store.active()) if overlay_store else 0,
         }
 
         # Get shared state info
@@ -593,6 +718,68 @@ def get_status():
     except Exception as e:
         logger.error(f"Error in get_status: {e}")
         return jsonify({"error": str(e)}), 500
+
+
+@app.route("/overlays", methods=["GET"])
+def list_overlays():
+    """List unexpired overlays. ?active=1 filters to currently-rendering ones."""
+    if overlay_store is None:
+        return jsonify({"error": "overlay_store module not available"}), 500
+    if request.args.get("active"):
+        return jsonify({"overlays": overlay_store.active()})
+    return jsonify({"overlays": overlay_store.list_all()})
+
+
+@app.route("/overlay", methods=["POST"])
+def create_overlay():
+    """Push an overlay card to the display.
+
+    JSON body:
+      slot: "banner" (footer strip) | "sidebar" (finance column) |
+            "fullscreen" (whole body, header stays) — default "banner"
+      title: short heading (optional)
+      text: body text, word-wrapped (optional)
+      image_b64: base64 PNG/JPEG, rendered dithered 1-bit (optional)
+      ttl_seconds: lifetime, default 3600, capped at 7 days
+      expires_at / starts_at: ISO timestamps (alternative to ttl)
+      priority: int, higher wins when a slot has multiple overlays
+      id: optional stable id — re-posting the same id replaces the overlay
+
+    At least one of title/text/image_b64 is required. The e-ink display
+    picks the change up on its next poll (~1 min when someone is home,
+    up to 30 min when away or at night).
+    """
+    if overlay_store is None:
+        return jsonify({"error": "overlay_store module not available"}), 500
+    try:
+        payload = request.get_json(force=True, silent=False)
+    except Exception:
+        return jsonify({"error": "body must be valid JSON"}), 400
+    try:
+        overlay = overlay_store.add(payload)
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 400
+    logger.info(f"Overlay added: {overlay['id']} slot={overlay['slot']} expires={overlay['expires_at']}")
+    return jsonify(overlay), 201
+
+
+@app.route("/overlay/<overlay_id>", methods=["DELETE"])
+def delete_overlay(overlay_id):
+    if overlay_store is None:
+        return jsonify({"error": "overlay_store module not available"}), 500
+    if overlay_store.remove(overlay_id):
+        logger.info(f"Overlay removed: {overlay_id}")
+        return jsonify({"deleted": overlay_id})
+    return jsonify({"error": "not found"}), 404
+
+
+@app.route("/overlays", methods=["DELETE"])
+def clear_overlays():
+    if overlay_store is None:
+        return jsonify({"error": "overlay_store module not available"}), 500
+    n = overlay_store.clear()
+    logger.info(f"Overlays cleared: {n}")
+    return jsonify({"cleared": n})
 
 
 @app.route("/display.bmp")

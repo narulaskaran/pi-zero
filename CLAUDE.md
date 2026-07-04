@@ -102,6 +102,15 @@ python3 get_train_times.py
 - ESP32-based Arduino firmware fetches images and displays them
 - Supports both `/display.bmp` and `/display.png` endpoints
 
+**Agent Overlays (Hermes):**
+- `overlay_store.py` + `/overlay(s)` endpoints let external agents push
+  expiring content cards (reminders, jokes, images) composited into the BMP
+- Three slots: `banner` (footer), `sidebar` (finance column), `fullscreen`
+  (body; header always stays) — one card per slot, highest priority wins
+- Every overlay has an expiry (`ttl_seconds`, cap 7 days); state in
+  gitignored `overlays.json` / `overlay_images/`; render failures fail open
+  to the base dashboard — see subway_train_times/README.md for the API
+
 **Dynamic Refresh Rate System:**
 - Automatically adjusts display update frequency based on phone presence and time of day
 - **Fast refresh** when user's phone detected on WiFi (recommended: 60 seconds = 1 minute)
