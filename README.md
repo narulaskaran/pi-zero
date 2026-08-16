@@ -29,7 +29,7 @@ Your subway display server is now running at `http://<pi-ip>:5000/display.png`
 
 ### subway_train_times
 
-Real-time NYC subway arrivals with weather, stocks, and e-ink display support.
+Real-time NYC subway arrivals with weather and e-ink display support.
 
 - **Documentation:** [Project README](subway_train_times/README.md)
 - **Hardware Guide:** [reTerminal Setup](subway_train_times/reterminal.md)

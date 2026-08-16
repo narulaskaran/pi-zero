@@ -290,49 +290,59 @@ def get_w_icon(code):
     return "?"
 
 
+def text_size(draw, text, font):
+    """Return (width, height) of text including its left/top bearing."""
+    bbox = draw.textbbox((0, 0), text, font=font)
+    return bbox[2] - bbox[0], bbox[3] - bbox[1]
+
+
 def draw_centered_text(draw, x, y, text, font, fill=COLOR_BLACK, align="left"):
     bbox = draw.textbbox((0, 0), text, font=font)
     w = bbox[2] - bbox[0]
+    ox = bbox[0]  # left bearing: subtract so glyphs center on x
     if align == "center":
-        draw.text((x - (w // 2), y), text, font=font, fill=fill)
+        draw.text((x - ox - (w // 2), y), text, font=font, fill=fill)
     elif align == "right":
-        draw.text((x - w, y), text, font=font, fill=fill)
+        draw.text((x - ox - w, y), text, font=font, fill=fill)
     else:
         draw.text((x, y), text, font=font, fill=fill)
     return w
 
 
+BADGE_SIZE = 56  # diameter of the route badge circle
+
+
 def draw_train_block(draw, x, y, train, font_bul, font_time, is_first=False):
-    size = 56
+    """Draw one train column: a filled route badge with the arrival time below.
+
+    (x, y) is the top-left of the badge. The badge is a filled circle with
+    the route letter/digit centered in white; the minutes ("Now" / "12m")
+    are centered underneath. The first (soonest) train is emphasized in
+    black, later ones in gray.
+    """
+    size = BADGE_SIZE
+    cx = x + size // 2
     draw.ellipse([x, y, x + size, y + size], fill=COLOR_BLACK)
 
-    bw = draw.textbbox((0, 0), train["route"], font=font_bul)[2]
-    draw.text((x + (size - bw) / 2, y), train["route"], fill=COLOR_WHITE, font=font_bul)
+    route = train["route"]
+    if len(route) > 1:
+        f_badge = get_font(max(18, font_bul.size - 14), True)
+    else:
+        f_badge = font_bul
+    bw, bh = text_size(draw, route, f_badge)
+    draw.text(
+        (cx - bw // 2, y + (size - bh) // 2),
+        route,
+        fill=COLOR_WHITE,
+        font=f_badge,
+    )
 
     text_color = COLOR_BLACK if is_first else COLOR_GRAY
-    text_y = y + 60
-
+    minutes_y = y + size + 6
     if train["min"] == 0:
-        draw_centered_text(
-            draw,
-            x + (size // 2),
-            text_y,
-            "Now",
-            font_time,
-            fill=text_color,
-            align="center",
-        )
+        draw_centered_text(draw, cx, minutes_y, "Now", font_time, fill=text_color, align="center")
     else:
-        full_str = f"{train['min']}m"
-        draw_centered_text(
-            draw,
-            x + (size // 2),
-            text_y,
-            full_str,
-            font_time,
-            fill=text_color,
-            align="center",
-        )
+        draw_centered_text(draw, cx, minutes_y, f"{train['min']}m", font_time, fill=text_color, align="center")
 
 
 # ============ OVERLAYS ============
@@ -414,18 +424,20 @@ def draw_overlay(img, draw, overlay):
         f_title, f_body = get_font(30, True), get_font(22)
 
     if title:
+        title_step = getattr(f_title, "size", 24) + 4
         for line in wrap_text(draw, title, f_title, content_w):
-            if cursor_y > y1 - pad:
+            if cursor_y + getattr(f_title, "size", 24) > y1 - pad:
                 break
             draw.text((content_x, cursor_y), line, font=f_title, fill=COLOR_BLACK)
-            cursor_y += getattr(f_title, "size", 24) + 4
+            cursor_y += title_step
         cursor_y += 4
     if text:
+        body_step = getattr(f_body, "size", 20) + 4
         for line in wrap_text(draw, text, f_body, content_w):
-            if cursor_y > y1 - pad:
+            if cursor_y + getattr(f_body, "size", 20) > y1 - pad:
                 break
             draw.text((content_x, cursor_y), line, font=f_body, fill=COLOR_BLACK)
-            cursor_y += getattr(f_body, "size", 20) + 4
+            cursor_y += body_step
 
 
 def apply_overlays(img, draw):
@@ -450,82 +462,133 @@ def apply_overlays(img, draw):
         logger.error(f"Overlay rendering failed, showing base dashboard: {e}")
 
 
-def generate_image(battery_percent=None):
+def draw_battery_icon(draw, x, y, percent, w=30, h=14):
+    """Draw a small battery glyph; return its total width (incl. terminal)."""
+    body_w = w - 3
+    draw.rectangle([x, y, x + body_w, y + h], outline=COLOR_BLACK, width=1)
+    tw, th = 3, 6
+    draw.rectangle(
+        [x + body_w, y + (h - th) // 2, x + body_w + tw, y + (h + th) // 2],
+        fill=COLOR_BLACK,
+    )
+    if percent > 0:
+        fw = max(1, int((body_w - 4) * percent / 100))
+        draw.rectangle([x + 2, y + 2, x + 2 + fw, y + h - 2], fill=COLOR_BLACK)
+    return body_w + tw
+
+
+def draw_temp_pair(draw, cx, y, hi, lo, f_hi, f_lo):
+    """Draw "HI° LO°" centered as a pair; low temp gray, baselines aligned."""
+    hi_str = f"{hi}°"
+    lo_str = f"{lo}°"
+    w_hi = text_size(draw, hi_str, f_hi)[0]
+    w_lo = text_size(draw, lo_str, f_lo)[0]
+    gap = 10
+    x = cx - (w_hi + gap + w_lo) // 2
+    draw.text((x, y), hi_str, font=f_hi, fill=COLOR_BLACK)
+    lo_y = y + max(0, getattr(f_hi, "size", 0) - getattr(f_lo, "size", 0))
+    draw.text((x + w_hi + gap, lo_y), lo_str, font=f_lo, fill=COLOR_GRAY)
+
+
+def draw_status_line(draw, center_x, y, battery_percent, next_refresh_str, font):
+    """Centered header status line: battery % then the next-update time."""
+    sep = "  ·  "
+    batt_w = 30
+    pct_str = f"{battery_percent}%" if battery_percent is not None else None
+    pct_w = text_size(draw, pct_str, font)[0] if pct_str else 0
+    sep_w = text_size(draw, sep, font)[0] if pct_str else 0
+    next_w = text_size(draw, next_refresh_str, font)[0]
+    parts_w = (batt_w + 5 + pct_w + sep_w + next_w) if pct_str else next_w
+
+    x = center_x - parts_w // 2
+    if pct_str:
+        draw_battery_icon(draw, x, y + 1, battery_percent, w=batt_w, h=14)
+        draw.text((x + batt_w + 5, y), pct_str, font=font, fill=COLOR_BLACK)
+        x += batt_w + 5 + pct_w
+        draw.text((x, y), sep, font=font, fill=COLOR_GRAY)
+        x += sep_w
+    draw.text((x, y), next_refresh_str, font=font, fill=COLOR_GRAY)
+
+
+def generate_image(battery_percent=None, now=None, weather=None, subway=None, refresh_seconds=None):
+    """Render the 800x480 dashboard.
+
+    Weather/subway/time can be injected for deterministic tests; when omitted
+    they are fetched live exactly as before, preserving the endpoint contract.
+    """
+    now = now or datetime.now()
+    config = load_config()
+    station = (config.get("stations") or config.get("stops", [{}]))[0]
+
+    if weather is None:
+        weather = get_weather(station.get("lat", 40.78), station.get("lon", -73.97))
+    if subway is None:
+        subway = get_subway(station)
+    if refresh_seconds is None:
+        refresh_seconds = calculate_refresh_rate()
+
     img = Image.new("L", (DISPLAY_WIDTH, DISPLAY_HEIGHT), color=COLOR_WHITE)
     draw = ImageDraw.Draw(img)
 
     # FONTS
-    f_huge = get_font(68, True)
-    f_large = get_font(48, True)
-    f_med = get_font(28, True)
+    f_huge = get_font(68, True)       # time, current temp
+    f_large = get_font(44, True)      # route badge letter
+    f_med = get_font(28, True)        # AM/PM, date
+    f_header = get_font(18, True)     # section labels
+    f_small = get_font(20, True)      # forecast day + hi temp
+    f_tiny = get_font(16)             # status line, low temp
+    f_time = get_font(24, True)       # arrival minutes
 
-    # New Smaller Header Font (24px instead of 28px)
-    f_header = get_font(24, True)
+    f_icon_lg = get_font(56, is_icon=True)
+    f_icon_med = get_font(26, is_icon=True)
 
-    f_small = get_font(20, True)
-    f_tiny = get_font(16)
+    # --- 1. HEADER (0 - 115): time/date left, weather right, status bottom ---
+    # Time (left)
+    w_time = draw_centered_text(draw, 20, 6, now.strftime("%I:%M").lstrip("0"), f_huge)
+    draw.text((20 + w_time + 10, 44), now.strftime("%p"), font=f_med, fill=COLOR_GRAY)
+    draw.text((22, 82), now.strftime("%A, %b %d"), font=f_med)
 
-    f_icon_lg = get_font(60, is_icon=True)
-    f_icon_med = get_font(28, is_icon=True)
-    f_icon_sm = get_font(20, is_icon=True)
-
-    # --- 1. HEADER (0 - 115) ---
-    now = datetime.now()
-    w_time = draw_centered_text(draw, 20, 10, now.strftime("%I:%M").lstrip("0"), f_huge)
-    draw.text((20 + w_time + 8, 58), now.strftime("%p"), font=f_med, fill=COLOR_GRAY)
-    draw.text((22, 80), now.strftime("%A, %b %d"), font=f_med)
-
-    config = load_config()
-    station = (config.get("stations") or config.get("stops", [{}]))[0]
-    weather = get_weather(station.get("lat", 40.78), station.get("lon", -73.97))
-
+    # Current weather (right): icon + temperature
     if weather and "current" in weather:
         temp = f"{int(weather['current']['temperature_2m'])}°"
         icon = get_w_icon(weather["current"]["weather_code"])
-        w_t = draw_centered_text(
-            draw, DISPLAY_WIDTH - 20, 20, temp, f_huge, align="right"
-        )
-        draw_centered_text(
-            draw, DISPLAY_WIDTH - 20 - w_t - 10, 15, icon, f_icon_lg, align="right"
-        )
+        w_t = draw_centered_text(draw, DISPLAY_WIDTH - 20, 16, temp, f_huge, align="right")
+        draw_centered_text(draw, DISPLAY_WIDTH - 20 - w_t - 12, 22, icon, f_icon_lg, align="right")
+
+    # Status line (battery + next update), centered just above the divider
+    next_refresh_time = (now + timedelta(seconds=refresh_seconds)).strftime("%I:%M %p").lstrip("0")
+    next_refresh_str = f"Next update: {next_refresh_time}"
+    draw_status_line(draw, DISPLAY_WIDTH // 2, 96, battery_percent, next_refresh_str, f_tiny)
 
     draw.line([(0, 115), (DISPLAY_WIDTH, 115)], fill=COLOR_BLACK, width=4)
 
-    # --- 2. MAIN BODY (115 - 360): subway, full width ---
-    subway = get_subway(station)
+    # --- 2. MAIN BODY (115 - 360): subway, kept left of the sidebar slot ---
     dirs = station.get("directions", {})
-    # 5 slots across the full 800px width (finance column removed).
-    # The rightmost slot (x~700) sits under the optional sidebar overlay,
-    # which is only drawn when an agent card is active.
-    slot_centers = [80, 240, 400, 560, 720]
+    # Five slots across the left 600px so the right 200px (sidebar overlay
+    # region 600-800) never covers core subway data.
+    slot_centers = [60, 180, 300, 420, 540]
+    badge = BADGE_SIZE
 
-    # === UPTOWN ===
     lbl_up = dirs.get("uptown", "UP").split("(")[0].strip()
-    draw.text((20, 122), lbl_up, font=f_header, fill=COLOR_GRAY)
-
+    draw.text((20, 120), lbl_up, font=f_header, fill=COLOR_GRAY)
     if subway and subway["uptown"]:
         for i, t in enumerate(subway["uptown"][:5]):
-            center_x = slot_centers[i]
-            # y=148 slightly nudged down
-            draw_train_block(
-                draw, center_x - 28, 148, t, f_large, f_med, is_first=(i == 0)
-            )
+            draw_train_block(draw, slot_centers[i] - badge // 2, 146, t, f_large, f_time, is_first=(i == 0))
 
-    # === DOWNTOWN ===
     lbl_down = dirs.get("downtown", "DOWN").split("(")[0].strip()
-    draw.text((20, 245), lbl_down, font=f_header, fill=COLOR_GRAY)
-
+    draw.text((20, 242), lbl_down, font=f_header, fill=COLOR_GRAY)
     if subway and subway["downtown"]:
         for i, t in enumerate(subway["downtown"][:5]):
-            center_x = slot_centers[i]
-            # y=270 ensures the bottom is clear
-            draw_train_block(
-                draw, center_x - 28, 270, t, f_large, f_med, is_first=(i == 0)
-            )
+            draw_train_block(draw, slot_centers[i] - badge // 2, 266, t, f_large, f_time, is_first=(i == 0))
 
-    # --- 3. FOOTER (360 - 480) ---
+    # Make the reserved sidebar rail explicit without competing with core data.
+    # Keep the rule at x=599 so sidebar overlays (x=600..800) never cover it.
+    draw.line([(599, 120), (599, 355)], fill=COLOR_GRAY, width=1)
+
+    # --- 3. FOOTER (360 - 480): 7-day forecast ---
     fy = 360
     draw.line([(0, fy), (DISPLAY_WIDTH, fy)], fill=COLOR_BLACK, width=3)
+    draw.text((20, fy + 6), "FORECAST", font=f_tiny, fill=COLOR_GRAY)
 
     if weather and "daily" in weather:
         d = weather["daily"]
@@ -538,64 +601,9 @@ def generate_image(battery_percent=None):
             lo = int(d["temperature_2m_min"][i])
             cx = (i * col_w) + (col_w / 2)
 
-            draw_centered_text(draw, cx, fy + 10, day_label, f_small, align="center")
-            draw_centered_text(draw, cx, fy + 35, icon, f_icon_med, align="center")
-            draw_centered_text(draw, cx - 12, fy + 75, f"{hi}°", f_med, align="center")
-            draw.text((cx + 12, fy + 82), f"{lo}°", font=f_tiny, fill=COLOR_GRAY)
-
-    # --- BATTERY INDICATOR (top middle, subtle) ---
-    if battery_percent is not None:
-        batt_x = (DISPLAY_WIDTH // 2) - 30  # Center horizontally
-        batt_y = 8  # Top, subtle positioning
-
-        # Battery icon (simple rectangle with terminal)
-        battery_width = 50
-        battery_height = 20
-        terminal_width = 4
-        terminal_height = 10
-
-        # Draw battery body
-        draw.rectangle(
-            [batt_x, batt_y, batt_x + battery_width, batt_y + battery_height],
-            outline=COLOR_BLACK,
-            width=2
-        )
-
-        # Draw battery terminal
-        draw.rectangle(
-            [
-                batt_x + battery_width,
-                batt_y + (battery_height - terminal_height) // 2,
-                batt_x + battery_width + terminal_width,
-                batt_y + (battery_height + terminal_height) // 2
-            ],
-            fill=COLOR_BLACK
-        )
-
-        # Fill battery based on percentage
-        if battery_percent > 0:
-            fill_width = int((battery_width - 6) * battery_percent / 100)
-            draw.rectangle(
-                [batt_x + 3, batt_y + 3, batt_x + 3 + fill_width, batt_y + battery_height - 3],
-                fill=COLOR_BLACK
-            )
-
-        # Draw percentage text
-        batt_text = f"{battery_percent}%"
-        draw.text((batt_x + battery_width + terminal_width + 6, batt_y + 2), batt_text, font=f_tiny, fill=COLOR_BLACK)
-
-    # --- NEXT REFRESH TIME (top center, above battery) ---
-    refresh_seconds = calculate_refresh_rate()
-    next_refresh_time = datetime.now() + timedelta(seconds=refresh_seconds)
-    next_refresh_str = next_refresh_time.strftime("Next update: %I:%M %p")
-
-    # Calculate text position for center alignment
-    bbox = draw.textbbox((0, 0), next_refresh_str, font=f_tiny)
-    text_width = bbox[2] - bbox[0]
-    refresh_x = (DISPLAY_WIDTH - text_width) // 2
-    refresh_y = 30  # Top, below battery indicator
-
-    draw.text((refresh_x, refresh_y), next_refresh_str, font=f_tiny, fill=COLOR_BLACK)
+            draw_centered_text(draw, cx, fy + 30, day_label, f_small, align="center")
+            draw_centered_text(draw, cx, fy + 52, icon, f_icon_med, align="center")
+            draw_temp_pair(draw, cx, fy + 82, hi, lo, f_small, f_tiny)
 
     # --- OVERLAYS (agent-pushed cards; drawn last so they sit on top) ---
     apply_overlays(img, draw)
