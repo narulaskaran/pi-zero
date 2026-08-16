@@ -105,7 +105,7 @@ python3 get_train_times.py
 **Agent Overlays (Hermes):**
 - `overlay_store.py` + `/overlay(s)` endpoints let external agents push
   expiring content cards (reminders, jokes, images) composited into the BMP
-- Three slots: `banner` (footer), `sidebar` (finance column), `fullscreen`
+- Three slots: `banner` (footer), `sidebar` (right column), `fullscreen`
   (body; header always stays) — one card per slot, highest priority wins
 - Every overlay has an expiry (`ttl_seconds`, cap 7 days); state in
   gitignored `overlays.json` / `overlay_images/`; render failures fail open

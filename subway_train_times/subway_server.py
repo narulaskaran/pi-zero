@@ -13,7 +13,6 @@ from pathlib import Path
 
 import yaml
 import requests
-import yfinance as yf
 from flask import Flask, send_file, request, jsonify
 from PIL import Image, ImageDraw, ImageFont
 from nyct_gtfs import NYCTFeed
@@ -226,23 +225,6 @@ def get_weather(lat, lon):
         return None
 
 
-def get_finance():
-    data = []
-    try:
-        tickers = {"^GSPC": "S&P", "BTC-USD": "BTC", "GC=F": "Gold"}
-        t_obj = yf.Tickers(" ".join(tickers.keys()))
-        for sym, label in tickers.items():
-            info = t_obj.tickers[sym].fast_info
-            if info.last_price:
-                pct = (
-                    (info.last_price - info.previous_close) / info.previous_close
-                ) * 100
-                data.append({"label": label, "price": info.last_price, "change": pct})
-    except:
-        pass
-    return data
-
-
 def get_subway(config):
     if not config:
         return None
@@ -357,7 +339,7 @@ def draw_train_block(draw, x, y, train, font_bul, font_time, is_first=False):
 # Regions that overlay slots may take over. Core data (time header, battery,
 # next-refresh) is never covered except by "fullscreen".
 OVERLAY_REGIONS = {
-    "sidebar": (600, 115, 800, 360),     # finance column
+    "sidebar": (600, 115, 800, 360),     # right column (weather rating, reminders)
     "banner": (0, 360, 800, 480),        # forecast footer
     "fullscreen": (0, 115, 800, 480),    # everything below the header
 }
@@ -509,19 +491,20 @@ def generate_image(battery_percent=None):
 
     draw.line([(0, 115), (DISPLAY_WIDTH, 115)], fill=COLOR_BLACK, width=4)
 
-    # --- 2. MAIN BODY (115 - 360) ---
-    draw.line([(600, 115), (600, 360)], fill=COLOR_BLACK, width=3)
-
+    # --- 2. MAIN BODY (115 - 360): subway, full width ---
     subway = get_subway(station)
     dirs = station.get("directions", {})
-    slot_centers = [75, 225, 375, 525]
+    # 5 slots across the full 800px width (finance column removed).
+    # The rightmost slot (x~700) sits under the optional sidebar overlay,
+    # which is only drawn when an agent card is active.
+    slot_centers = [80, 240, 400, 560, 720]
 
     # === UPTOWN ===
     lbl_up = dirs.get("uptown", "UP").split("(")[0].strip()
     draw.text((20, 122), lbl_up, font=f_header, fill=COLOR_GRAY)
 
     if subway and subway["uptown"]:
-        for i, t in enumerate(subway["uptown"][:4]):
+        for i, t in enumerate(subway["uptown"][:5]):
             center_x = slot_centers[i]
             # y=148 slightly nudged down
             draw_train_block(
@@ -533,47 +516,12 @@ def generate_image(battery_percent=None):
     draw.text((20, 245), lbl_down, font=f_header, fill=COLOR_GRAY)
 
     if subway and subway["downtown"]:
-        for i, t in enumerate(subway["downtown"][:4]):
+        for i, t in enumerate(subway["downtown"][:5]):
             center_x = slot_centers[i]
             # y=270 ensures the bottom is clear
             draw_train_block(
                 draw, center_x - 28, 270, t, f_large, f_med, is_first=(i == 0)
             )
-
-    # === FINANCE COLUMN ===
-    fin = get_finance()
-    fin_center_x = 700
-    fin_y = 125
-
-    for f in fin:
-        is_up = f["change"] >= 0
-        sym = "▲" if is_up else "▼"
-
-        draw_centered_text(
-            draw, fin_center_x, fin_y, f.get("label"), f_med, align="center"
-        )
-
-        pct_str = f"{abs(f['change']):.1f}%"
-        aw = draw.textbbox((0, 0), sym, font=f_icon_med)[2]
-        pw = draw.textbbox((0, 0), pct_str, font=f_med)[2]
-        total_w = aw + 4 + pw
-        start_x = fin_center_x - (total_w // 2)
-
-        draw.text((start_x, fin_y + 26), sym, font=f_icon_med, fill=COLOR_BLACK)
-        draw.text((start_x + aw + 4, fin_y + 26), pct_str, font=f_med, fill=COLOR_BLACK)
-
-        if f["label"] == "BTC":
-            p = f"{f['price']/1000:.1f}k"
-        elif f["price"] > 100:
-            p = f"{f['price']:.0f}"
-        else:
-            p = f"{f['price']:.1f}"
-
-        draw_centered_text(
-            draw, fin_center_x, fin_y + 54, p, f_small, fill=COLOR_GRAY, align="center"
-        )
-
-        fin_y += 75
 
     # --- 3. FOOTER (360 - 480) ---
     fy = 360
@@ -735,7 +683,7 @@ def create_overlay():
     """Push an overlay card to the display.
 
     JSON body:
-      slot: "banner" (footer strip) | "sidebar" (finance column) |
+      slot: "banner" (footer strip) | "sidebar" (right column) |
             "fullscreen" (whole body, header stays) — default "banner"
       title: short heading (optional)
       text: body text, word-wrapped (optional)
