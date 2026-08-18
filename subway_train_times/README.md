@@ -327,7 +327,7 @@ the core time/battery header is never covered.
 | Slot | Region it takes over |
 |---|---|
 | `banner` | Footer forecast strip (full width, 800×120) |
-| `sidebar` | Right column (200×245) |
+| `sidebar` | Right column (240×245) |
 | `fullscreen` | Everything below the time/weather header |
 
 One overlay renders per slot (highest `priority`, then newest). An active

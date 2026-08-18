@@ -54,6 +54,8 @@ app = Flask(__name__)
 _presence_detector = None
 DISPLAY_WIDTH = 800
 DISPLAY_HEIGHT = 480
+TRANSIT_TRAIN_COUNT = 4
+SIDEBAR_X = 560
 
 SCRIPT_DIR = Path(__file__).parent.resolve()
 LOCAL_FONT_TEXT = SCRIPT_DIR / "Roboto-Bold.ttf"
@@ -349,7 +351,7 @@ def draw_train_block(draw, x, y, train, font_bul, font_time, is_first=False):
 # Regions that overlay slots may take over. Core data (time header, battery,
 # next-refresh) is never covered except by "fullscreen".
 OVERLAY_REGIONS = {
-    "sidebar": (600, 115, 800, 360),     # right column (weather rating, reminders)
+    "sidebar": (SIDEBAR_X, 115, 800, 360),  # right column (weather rating, reminders)
     "banner": (0, 360, 800, 480),        # forecast footer
     "fullscreen": (0, 115, 800, 480),    # everything below the header
 }
@@ -432,9 +434,31 @@ def draw_overlay(img, draw, overlay):
             cursor_y += title_step
         cursor_y += 4
     if text:
-        body_step = getattr(f_body, "size", 20) + 4
-        for line in wrap_text(draw, text, f_body, content_w):
-            if cursor_y + getattr(f_body, "size", 20) > y1 - pad:
+        # Sidebar cards may contain the full weather report, not a manually
+        # truncated excerpt. Fit the body font to the remaining card height;
+        # other slots retain their normal, larger typography.
+        if overlay["slot"] == "sidebar":
+            for body_size in range(18, 11, -1):
+                candidate_font = get_font(body_size)
+                candidate_lines = wrap_text(draw, text, candidate_font, content_w)
+                glyph_h = text_size(draw, "Ag", candidate_font)[1]
+                candidate_step = glyph_h + 4
+                last_y = cursor_y + max(0, len(candidate_lines) - 1) * candidate_step
+                if last_y + glyph_h <= y1 - pad:
+                    f_body = candidate_font
+                    body_lines = candidate_lines
+                    body_step = candidate_step
+                    break
+            else:
+                body_lines = wrap_text(draw, text, f_body, content_w)
+                body_step = text_size(draw, "Ag", f_body)[1] + 4
+        else:
+            body_lines = wrap_text(draw, text, f_body, content_w)
+            body_step = getattr(f_body, "size", 20) + 4
+
+        for line in body_lines:
+            glyph_h = text_size(draw, "Ag", f_body)[1]
+            if cursor_y + glyph_h > y1 - pad:
                 break
             draw.text((content_x, cursor_y), line, font=f_body, fill=COLOR_BLACK)
             cursor_y += body_step
@@ -564,26 +588,26 @@ def generate_image(battery_percent=None, now=None, weather=None, subway=None, re
 
     # --- 2. MAIN BODY (115 - 360): subway, kept left of the sidebar slot ---
     dirs = station.get("directions", {})
-    # Five slots across the left 600px so the right 200px (sidebar overlay
-    # region 600-800) never covers core subway data.
-    slot_centers = [60, 180, 300, 420, 540]
+    # Four slots across the left 560px leave a wider 240px sidebar. This keeps
+    # the weather-rating copy from wrapping into a clipped final line.
+    slot_centers = [70, 210, 350, 490]
     badge = BADGE_SIZE
 
     lbl_up = dirs.get("uptown", "UP").split("(")[0].strip()
     draw.text((20, 120), lbl_up, font=f_header, fill=COLOR_GRAY)
     if subway and subway["uptown"]:
-        for i, t in enumerate(subway["uptown"][:5]):
+        for i, t in enumerate(subway["uptown"][:TRANSIT_TRAIN_COUNT]):
             draw_train_block(draw, slot_centers[i] - badge // 2, 146, t, f_large, f_time, is_first=(i == 0))
 
     lbl_down = dirs.get("downtown", "DOWN").split("(")[0].strip()
     draw.text((20, 242), lbl_down, font=f_header, fill=COLOR_GRAY)
     if subway and subway["downtown"]:
-        for i, t in enumerate(subway["downtown"][:5]):
+        for i, t in enumerate(subway["downtown"][:TRANSIT_TRAIN_COUNT]):
             draw_train_block(draw, slot_centers[i] - badge // 2, 266, t, f_large, f_time, is_first=(i == 0))
 
     # Make the reserved sidebar rail explicit without competing with core data.
-    # Keep the rule at x=599 so sidebar overlays (x=600..800) never cover it.
-    draw.line([(599, 120), (599, 355)], fill=COLOR_GRAY, width=1)
+    # Keep the rule at x=559 so sidebar overlays (x=560..800) never cover it.
+    draw.line([(SIDEBAR_X - 1, 120), (SIDEBAR_X - 1, 355)], fill=COLOR_GRAY, width=1)
 
     # --- 3. FOOTER (360 - 480): 7-day forecast ---
     fy = 360
