@@ -311,6 +311,24 @@ def draw_centered_text(draw, x, y, text, font, fill=COLOR_BLACK, align="left"):
     return w
 
 
+def draw_centered_glyph(draw, cx, cy, text, font, fill=COLOR_BLACK):
+    """Place the visible glyph bounds at the requested center.
+
+    Pillow's default text placement uses the font anchor point, not the
+    visible glyph bounds. That made route digits sit low in the badges because
+    the font's top bearing was ignored.
+    """
+    bbox = draw.textbbox((0, 0), text, font=font)
+    glyph_cx = (bbox[0] + bbox[2]) / 2
+    glyph_cy = (bbox[1] + bbox[3]) / 2
+    draw.text(
+        (round(cx - glyph_cx), round(cy - glyph_cy)),
+        text,
+        fill=fill,
+        font=font,
+    )
+
+
 BADGE_SIZE = 56  # diameter of the route badge circle
 
 
@@ -331,12 +349,13 @@ def draw_train_block(draw, x, y, train, font_bul, font_time, is_first=False):
         f_badge = get_font(max(18, font_bul.size - 14), True)
     else:
         f_badge = font_bul
-    bw, bh = text_size(draw, route, f_badge)
-    draw.text(
-        (cx - bw // 2, y + (size - bh) // 2),
+    draw_centered_glyph(
+        draw,
+        cx,
+        y + size // 2,
         route,
+        f_badge,
         fill=COLOR_WHITE,
-        font=f_badge,
     )
 
     text_color = COLOR_BLACK if is_first else COLOR_GRAY
