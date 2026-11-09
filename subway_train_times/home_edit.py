@@ -250,7 +250,7 @@ def render(now, weather, aqi=None, battery_percent=None, has_sidebar=False, remi
             _text(d, 772, 461, f'+{count - shown} MORE', 12, 'mono', anchor='ra')
 
     if battery_percent is not None:
-        _text(d, 772, 468, f'BATTERY {battery_percent}%', 9, 'mono', anchor='ra')
+        _text(d, 400, 18, f'BATTERY {battery_percent}%', 16, 'mono', anchor='ma')
     return im
 
 
