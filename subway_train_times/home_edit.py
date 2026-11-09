@@ -218,7 +218,10 @@ def render(now, weather, aqi=None, battery_percent=None, has_sidebar=False, remi
     while temp_size > 40 and d.textlength(temp, font=font(temp_size, 'sans', weight=560)) > 155:
         temp_size -= 1
     _text(d, 27, 64 + dy, temp, temp_size, 'sans', weight=560)
-    _text(d, 186, 87 + dy, condition, 29, 'mono', max_width=190)
+    condition_size = 29
+    while condition_size > 17 and d.textlength(condition, font=font(condition_size, 'mono')) > 190:
+        condition_size -= 1
+    _text(d, 186, 87 + dy, condition, condition_size, 'mono', max_width=190)
     _text(d, 187, 132 + dy, f'Feels like {feels}', 17, 'sans', max_width=188)
     _text(d, 29, 184 + dy, 'Tomorrow', 16, 'mono')
     _text(d, 159, 180 + dy, f'{hi} / {lo}', 24, 'sans', max_width=210, weight=560)
