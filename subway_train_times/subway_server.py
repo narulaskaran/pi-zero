@@ -197,7 +197,7 @@ def apply_overlays(img, draw):
 
 
 def generate_image(battery_percent=None, now=None, weather=None, subway=None, refresh_seconds=None):
-    """Render Home Edit; legacy injection arguments are accepted without transit fetches."""
+    """Render Field Notes with one active-overlay snapshot and no transit fetch."""
     now = now or datetime.now()
     config = load_config()
     station = (config.get("stations") or config.get("stops") or [{}])[0]
@@ -205,9 +205,23 @@ def generate_image(battery_percent=None, now=None, weather=None, subway=None, re
     if weather is None:
         weather = get_weather(lat, lon)
     aqi = get_air_quality(lat, lon)
-    img = home_edit.render(now, weather, aqi, battery_percent)
-    apply_overlays(img, ImageDraw.Draw(img))
-    return img
+    try:
+        active = overlay_store.active() if overlay_store is not None else []
+        active.sort(key=lambda o: (o.get("priority", 0), o.get("created_at", "")), reverse=True)
+        fullscreen = next((o for o in active if o.get("slot") == "fullscreen"), None)
+        reminders = [o for o in active if o.get("slot") in ("sidebar", "banner")]
+        records = [fullscreen] if fullscreen else reminders
+        for record in records:
+            if record.get("has_image"):
+                record["_image_path"] = overlay_store.get_image(record["id"])
+    except Exception as exc:
+        logger.error(f"Overlay lookup failed, showing base dashboard: {exc}")
+        fullscreen, reminders = None, []
+    if fullscreen:
+        img = home_edit.render(now, weather, aqi, battery_percent)
+        draw_overlay(img, ImageDraw.Draw(img), fullscreen)
+        return img
+    return home_edit.render(now, weather, aqi, battery_percent, reminders=reminders)
 
 
 @app.route("/refresh-rate")
@@ -242,7 +256,7 @@ def get_status():
             "note": "Presence detection handled by Waveshare display (every 45s)",
             "overlay_api": overlay_store is not None,
             "layout": "home_edit",
-            "renderer_version": "home-edit-2-reminder-list",
+            "renderer_version": "field-notes-1-adaptive",
             "renderer_sha256": hashlib.sha256(Path(home_edit.__file__).read_bytes()).hexdigest(),
             "active_overlays": len(overlay_store.active()) if overlay_store else 0,
         }
