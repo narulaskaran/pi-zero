@@ -175,11 +175,7 @@ def draw_overlay(img, draw, overlay):
 
 
 def apply_overlays(img, draw):
-    """Draw the highest-priority active overlay of each slot.
-
-    A fullscreen overlay covers the body, so sidebar/banner are skipped
-    while one is active.
-    """
+    """Render fullscreen as the legacy exclusive card; list all active shared notes."""
     if overlay_store is None:
         return
     try:
@@ -187,10 +183,14 @@ def apply_overlays(img, draw):
         if fullscreen:
             draw_overlay(img, draw, fullscreen[0])
             return
+        reminders = []
         for slot in ("sidebar", "banner"):
-            candidates = overlay_store.active(slot)
-            if candidates:
-                draw_overlay(img, draw, candidates[0])
+            reminders.extend(overlay_store.active(slot))
+        reminders.sort(key=lambda o: (o.get("priority", 0), o.get("created_at", "")), reverse=True)
+        for reminder in reminders:
+            if reminder.get("has_image"):
+                reminder["_image_path"] = overlay_store.get_image(reminder["id"])
+        home_edit.draw_reminder_list(img, reminders)
     except Exception as e:
         # Overlays must never break the core dashboard.
         logger.error(f"Overlay rendering failed, showing base dashboard: {e}")
@@ -205,8 +205,7 @@ def generate_image(battery_percent=None, now=None, weather=None, subway=None, re
     if weather is None:
         weather = get_weather(lat, lon)
     aqi = get_air_quality(lat, lon)
-    sidebar = bool(overlay_store and overlay_store.active("sidebar"))
-    img = home_edit.render(now, weather, aqi, battery_percent, has_sidebar=sidebar)
+    img = home_edit.render(now, weather, aqi, battery_percent)
     apply_overlays(img, ImageDraw.Draw(img))
     return img
 
@@ -243,7 +242,7 @@ def get_status():
             "note": "Presence detection handled by Waveshare display (every 45s)",
             "overlay_api": overlay_store is not None,
             "layout": "home_edit",
-            "renderer_version": "home-edit-1",
+            "renderer_version": "home-edit-2-reminder-list",
             "renderer_sha256": hashlib.sha256(Path(home_edit.__file__).read_bytes()).hexdigest(),
             "active_overlays": len(overlay_store.active()) if overlay_store else 0,
         }

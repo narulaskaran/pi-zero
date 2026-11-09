@@ -11,10 +11,11 @@ live clock or fetch subway arrivals. The existing `/display.bmp`, `/refresh-rate
 for **15 minutes** in all presence/night states; firmware must honor `/refresh-rate`.
 This reduces scheduled wakeups, not a measured battery-life guarantee.
 
-- Existing reminders and scheduled overlays retain their IDs, priorities and expiry.
-  Banner cards replace the forecast footer; sidebar cards replace the illustration;
-  fullscreen cards cover the body while retaining the date header. Long text is
-  visibly ellipsized rather than overflowing. Empty reminder slots do not show fake tasks.
+- Active banner and sidebar reminders retain their stored IDs, priorities, starts-at and
+  expiry filtering, and share one stable priority-sorted list; fullscreen overlays remain
+  exclusive and preserve their existing image/title/body treatment. The list shows a visible
+  `+N more` count when it runs out of rows, keeps park art in the remaining space, and
+  includes small thumbnails for reminder images. No timed cycling.
 - Missing weather/air readings are labeled unavailable, never replaced with made-up data.
 - Weather and modeled air-quality data: [Open-Meteo](https://open-meteo.com/),
   including CAMS-derived air-quality forecasts. Values are regional estimates, not
@@ -24,7 +25,7 @@ This reduces scheduled wakeups, not a measured battery-life guarantee.
 - Offline acceptance tests: `cd subway_train_times && python3 -m unittest test_home_edit -v`.
   Tests use temporary overlay storage and never change live reminders.
 - Deployment: the existing updater pulls `main` and restarts `subway-display`.
-  Verify `/status` reports `layout: home_edit`, `renderer_version: home-edit-1`, and
+  Verify `/status` reports `layout: home_edit`, `renderer_version: home-edit-2-reminder-list`, and
   `current_refresh_seconds: 900`, then inspect a fresh `/display.bmp`.
 - Rollback: revert the Home Edit commit on `main`; the same updater restores the
   previous renderer. Local device configuration and overlay data are not committed.

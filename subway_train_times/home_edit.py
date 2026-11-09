@@ -118,7 +118,83 @@ def air_copy(aqi):
     return 'Stay air-aware',f'AQI {n} · Avoid outdoor exertion'
 
 
-def render(now, weather, aqi=None, battery_percent=None, has_sidebar=False):
+def _park_in_region(im, x, y, width, height):
+    """Keep the neighborhood illustration visible, scaling it into leftover space."""
+    if width < 36 or height < 26:
+        return
+    art = Image.new('L', (338*SCALE, 237*SCALE), 255)
+    _park(ImageDraw.Draw(art), 0, 0, 338, 237)
+    art = art.resize((338*SCALE, 237*SCALE), Image.Resampling.LANCZOS)
+    art.thumbnail((int(width*SCALE), int(height*SCALE)), Image.Resampling.LANCZOS)
+    px = int((x + (width-art.width/SCALE)/2)*SCALE)
+    py = int((y + (height-art.height/SCALE)/2)*SCALE)
+    im.paste(art, (px, py))
+
+
+def draw_reminder_list(im, reminders):
+    """Draw a stable, priority-ordered list and show the number not displayed."""
+    reminders = list(reminders or [])
+    # Production overlays arrive after render() has reduced the canvas to native
+    # resolution. Draw at the same working scale as base rendering, then reduce.
+    if im.size == (800, 480):
+        working = im.resize((800*SCALE, 480*SCALE), Image.Resampling.NEAREST)
+        draw_reminder_list(working, reminders)
+        im.paste(working.resize((800, 480), Image.Resampling.LANCZOS))
+        return
+    d = ImageDraw.Draw(im)
+    if reminders:
+        x, top, width, bottom = 423, 81, 343, 343
+        d.rectangle((415*SCALE, 78*SCALE, 774*SCALE, bottom*SCALE), fill=255)
+        _text(d, x, top, 'REMINDERS', 13)
+        rows_top = top + 22
+        row_height = 43
+        # Reserve an illustration strip even at maximum reminder density.
+        max_rows = min(4, max(0, (bottom - rows_top - 25 - 34) // row_height))
+        shown = reminders[:max_rows]
+        for index, reminder in enumerate(shown):
+            y = rows_top + index*row_height
+            if index:
+                _line(d, [(x, y-4), (x+width, y-4)], .7)
+            text_x = x
+            image_path = reminder.get('_image_path')
+            if image_path:
+                try:
+                    with Image.open(image_path) as source:
+                        thumb = source.convert('L')
+                        thumb.thumbnail((34*SCALE, 34*SCALE))
+                        im.paste(thumb, (x*SCALE, (y+3)*SCALE))
+                        text_x += 40
+                except (OSError, ValueError):
+                    pass
+            title = reminder.get('title') or 'A note for home'
+            text = reminder.get('text') or ''
+            for offset, value, size, face in [(0, title, 20, 'serif'), (23, text, 16, 'sans')]:
+                if not value:
+                    continue
+                f = font(size, face)
+                limit = (x+width-text_x)*SCALE
+                # Normalize line breaks and visibly bound every row, including
+                # long unbroken tokens; shrinking alone cannot prevent overflow.
+                value = ' '.join(str(value).split())
+                if d.textbbox((0, 0), value, font=f)[2] > limit:
+                    while value and d.textbbox((0, 0), value+'...', font=f)[2] > limit:
+                        value = value[:-1]
+                    value = value.rstrip()+'...'
+                d.text((text_x*SCALE, (y+offset)*SCALE), value, font=f, fill=0)
+        overflow = max(0, len(reminders)-len(shown))
+        marker_height = 17 if overflow else 0
+        if overflow:
+            _text(d, x, bottom-marker_height, f'+{overflow} more', 12)
+        park_y = rows_top + len(shown)*row_height + marker_height + 2
+        _park_in_region(im, x, park_y, width, max(0, bottom-park_y))
+    d.rectangle((536*SCALE, 401*SCALE, 770*SCALE, 460*SCALE), fill=255)
+    count = len(reminders)
+    _text(d, 536, 401, f'{count} active' if count else 'No active notes', 28, 'serif', max_width=230)
+    _text(d, 536, 440, 'Listed above' if count else 'Shared notes appear here', 15, max_width=230)
+
+
+def render(now, weather, aqi=None, battery_percent=None, has_sidebar=False, reminders=None):
+    """Render the editorial board; reminders are injected as active overlay records."""
     im=Image.new('L',(800*SCALE,480*SCALE),255);d=ImageDraw.Draw(im)
     _text(d,34,22,'THE HOME EDIT',15)
     date=now.strftime('%A, %B ')+str(now.day)
@@ -126,14 +202,18 @@ def render(now, weather, aqi=None, battery_percent=None, has_sidebar=False):
     _line(d,[(34,58),(766,58)])
     current=(weather or {}).get('current',{})
     first,second,advice=weather_copy(current)
-    _text(d,34,78,first,65,'serif',max_width=365)
-    _text(d,34,145,second,65,'serif',max_width=365)
-    _text(d,36,230,_degree(current.get('temperature_2m')),59,'serif')
-    temp_width=d.textbbox((0,0),_degree(current.get('temperature_2m')),font=font(59,'serif'))[2]/SCALE
+    _text(d,34,82,first,38,'serif',max_width=365)
+    _text(d,34,123,second,38,'serif',max_width=365)
+    _text(d,36,174,_degree(current.get('temperature_2m')),50,'serif')
+    temp_width=d.textbbox((0,0),_degree(current.get('temperature_2m')),font=font(50,'serif'))[2]/SCALE
     feels=current.get('apparent_temperature')
-    _text(d,max(146,46+temp_width),253,'Feels like '+_degree(feels) if feels is not None else 'Feels-like unavailable',19,max_width=245)
-    _text(d,36,307,advice,20,max_width=365)
-    if not has_sidebar:_park(d)
+    _text(d,max(146,46+temp_width),194,'Feels like '+_degree(feels) if feels is not None else 'Feels-like unavailable',17,max_width=245)
+    _text(d,36,244,advice,16,max_width=365)
+    reminders = list(reminders or [])
+    if reminders:
+        draw_reminder_list(im, reminders)
+    else:
+        _park_in_region(im, 415, 91, 338, 237)
     _line(d,[(34,357),(766,357)])
     for x,label in [(34,'TOMORROW'),(285,'OUTDOORS'),(536,'REMINDERS')]:_text(d,x,376,label,12)
     i=forecast_index(weather,now)
@@ -149,8 +229,8 @@ def render(now, weather, aqi=None, battery_percent=None, has_sidebar=False):
         detail=f'AQI {air_value} · {day} sunset {sunset}'
     _text(d,285,401,title,28,'serif',max_width=235)
     _text(d,285,440,detail,15,max_width=235)
-    _text(d,536,401,'A note above' if has_sidebar else 'No active notes',28,'serif',max_width=230)
-    _text(d,536,440,'Shared notes appear here',15,max_width=230)
+    _text(d,536,401,f'{len(reminders)} active' if reminders else 'No active notes',28,'serif',max_width=230)
+    _text(d,536,440,'Listed above' if reminders else 'Shared notes appear here',15,max_width=230)
     if battery_percent is not None:
         _text(d,766,466,f'Battery {battery_percent}%',9,anchor='ra')
     return im.resize((800,480),Image.Resampling.LANCZOS)
