@@ -198,7 +198,7 @@ def apply_overlays(img, draw):
 
 def generate_image(battery_percent=None, now=None, weather=None, subway=None, refresh_seconds=None):
     """Render Field Notes with one active-overlay snapshot and no transit fetch."""
-    now = now or datetime.now()
+    now = now or datetime.now(home_edit.art_catalog.TIMEZONE)
     config = load_config()
     station = (config.get("stations") or config.get("stops") or [{}])[0]
     lat, lon = station.get("lat", 40.78), station.get("lon", -73.97)
@@ -256,10 +256,16 @@ def get_status():
             "note": "Presence detection handled by Waveshare display (every 45s)",
             "overlay_api": overlay_store is not None,
             "layout": "home_edit",
-            "renderer_version": "field-notes-1-adaptive",
+            "renderer_version": "field-notes-2-weekday-art",
             "renderer_sha256": hashlib.sha256(Path(home_edit.__file__).read_bytes()).hexdigest(),
             "active_overlays": len(overlay_store.active()) if overlay_store else 0,
         }
+
+        try:
+            status['artwork'] = home_edit.art_catalog.status(datetime.now(home_edit.art_catalog.TIMEZONE))
+            status['art_module_sha256'] = hashlib.sha256(Path(home_edit.art_catalog.__file__).read_bytes()).hexdigest()
+        except (OSError, ValueError, KeyError) as exc:
+            status['artwork'] = {'error': str(exc), 'fallback': 'The Rhinoceros'}
 
         # Get shared state info
         if SharedPresenceState is not None:

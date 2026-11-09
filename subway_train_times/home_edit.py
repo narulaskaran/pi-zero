@@ -3,6 +3,8 @@ from datetime import datetime, timedelta
 from functools import lru_cache
 from pathlib import Path
 import math
+import logging
+import art_catalog
 
 from PIL import Image, ImageDraw, ImageFont, ImageOps, ImageEnhance
 
@@ -130,14 +132,22 @@ def _art_image(width, height):
     return art
 
 
-def _place_art(im, box):
+def _place_art(im, box, now=None):
     x, y, w, h = box
     if w <= 0 or h <= 0:
-        return
-    art = _art_image(w, h)
+        return ''
+    try:
+        entry = art_catalog.artwork_for(now)
+        art = art_catalog.image_for(entry, w, h)
+        caption = entry['caption']
+    except (OSError, ValueError, KeyError) as exc:
+        logging.getLogger(__name__).warning('Weekday art unavailable; using bundled rhino: %s', exc)
+        art = _art_image(w, h)
+        caption = 'Dürer · The Rhinoceros, 1515'
     px = int(x + (w - art.width) / 2)
     py = int(y + (h - art.height) / 2)
     im.paste(art, (px, py))
+    return caption
 
 
 def _reminder_line(d, im, reminder, y, width, title_size=20, body_size=15):
@@ -176,6 +186,7 @@ def draw_reminder_list(im, reminders):
 
 
 def render(now, weather, aqi=None, battery_percent=None, has_sidebar=False, reminders=None):
+    now = art_catalog.local_day(now)
     reminders = list(reminders or [])
     populated = bool(reminders)
     count = len(reminders)
@@ -213,9 +224,9 @@ def render(now, weather, aqi=None, battery_percent=None, has_sidebar=False, remi
     _text(d, 159, 180 + dy, f'{hi} / {lo}', 24, 'sans', max_width=210, weight=560)
     _text(d, 29, (216 if count >= 3 else 224) + dy, f'Rain {tomorrow_rain}   ·   AQI {air_label}', 17, 'mono', max_width=335)
     art_box = (386, 87, 369, 338) if not populated else (418, 69, 354, split - 112)
-    _place_art(im, art_box)
+    caption = _place_art(im, art_box, now)
     if art_box[3] > 0:
-        _text(d, art_box[0] + 3, 434 if not populated else split - 34, 'DÜRER · THE RHINOCEROS, 1515', 12, 'mono', max_width=art_box[2] - 6)
+        _text(d, art_box[0] + 3, 434 if not populated else split - 34, caption, 12, 'mono', max_width=art_box[2] - 6)
 
     if populated:
         _line(d, [(28, split), (772, split)])

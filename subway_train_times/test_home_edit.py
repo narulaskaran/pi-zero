@@ -63,7 +63,7 @@ class FieldNotesTests(unittest.TestCase):
         return image
 
     def test_status_version_and_refresh_contract(self):
-        self.assertEqual(self.client.get('/status').json['renderer_version'], 'field-notes-1-adaptive')
+        self.assertEqual(self.client.get('/status').json['renderer_version'], 'field-notes-2-weekday-art')
         self.assertEqual(self.client.get('/status').json['layout'], 'home_edit')
         self.assertEqual(self.client.get('/refresh-rate').json['refresh_minutes'], 15)
 
