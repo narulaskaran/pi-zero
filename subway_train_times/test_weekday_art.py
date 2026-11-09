@@ -13,7 +13,7 @@ import home_edit
 import subway_server as server
 from test_home_edit import WEATHER
 
-OUT = Path('/opt/data/artifacts/eink/weekday-art/route-proofs')
+OUT = Path('/opt/data/artifacts/eink/crowded-layout-refinement')
 
 
 class WeekdayArtTests(unittest.TestCase):
@@ -88,6 +88,7 @@ class WeekdayArtTests(unittest.TestCase):
                     return day
             states = {'empty':[], 'single':[{'title':'Water the plants','text':'Check the kitchen pots'}],
                       'two':[{'title':'Water the plants','text':'Check the kitchen pots'}, {'title':'Take out recycling','text':'Paper and glass'}],
+                      'three':[{'title':f'Reminder {i+1}','text':f'Shared detail {i+1}'} for i in range(3)],
                       'four':[{'title':f'Reminder {i+1}','text':f'Shared detail {i+1}'} for i in range(4)],
                       'overflow':[{'title':f'Reminder {i+1}','text':f'Shared detail {i+1}'} for i in range(7)],
                       'long':[{'title':'A very long shared household reminder '*6,'text':'unbrokentoken'*40}]}
@@ -104,7 +105,7 @@ class WeekdayArtTests(unittest.TestCase):
                         empty_images.append(image.copy())
                         self.assertIsNone(ImageChops.invert(image.convert('L').crop((20,450,780,480))).getbbox())
                     if label == 'overflow':
-                        self.assertIsNotNone(ImageChops.invert(image.convert('L').crop((570,460,700,479))).getbbox())
+                        self.assertIsNotNone(ImageChops.invert(image.convert('L').crop((650,450,780,479))).getbbox())
                     status = client.get('/status').json
                     self.assertEqual(status['artwork']['object_id'], art_catalog.catalog()[n]['object_id'])
                     self.assertEqual(status['renderer_version'], 'field-notes-2-weekday-art')

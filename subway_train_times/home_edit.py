@@ -150,23 +150,23 @@ def _place_art(im, box, now=None):
     return caption
 
 
-def _reminder_line(d, im, reminder, y, width, title_size=20, body_size=15):
-    x = 200
+def _reminder_line(d, im, reminder, y, width, title_size=18, body_size=15):
     thumb = reminder.get('_image_path')
+    x = 50
     if thumb:
         try:
             with Image.open(thumb) as src:
                 image = src.convert('L')
             image.thumbnail((32, 32), Image.Resampling.LANCZOS)
-            im.paste(image, (32, y + 1))
+            im.paste(image, (28, y + 1))
+            x = 72
         except (OSError, ValueError):
             pass
-    d.text((182, y + 7), '—', font=font(15, 'mono'), fill=0)
-    available = width - x - 20
+    available = width - x - 18
     has_title = bool(reminder.get('title'))
     title = reminder.get('title') or reminder.get('text') or ''
     text = reminder.get('text') or '' if has_title else ''
-    for offset, value, size, weight in ((0, title, title_size, 560), (22, text, body_size, 400)):
+    for offset, value, size, weight in ((0, title, title_size, 560), (21, text, body_size, 400)):
         if not value:
             continue
         f = font(size, 'mono' if offset == 0 else 'sans', weight=weight)
@@ -179,7 +179,7 @@ def draw_reminder_list(im, reminders):
     reminders = list(reminders or [])
     if not reminders:
         return im
-    split = 252 if len(reminders) >= 3 else 310
+    split = {1: 390, 2: 350, 3: 310}.get(len(reminders), 270)
     result = render(datetime.now(), None, reminders=reminders)
     im.paste(result.crop((0, split, 800, 480)), (0, split))
     return im
@@ -190,7 +190,9 @@ def render(now, weather, aqi=None, battery_percent=None, has_sidebar=False, remi
     reminders = list(reminders or [])
     populated = bool(reminders)
     count = len(reminders)
-    split = (252 if count >= 3 else 310) if populated else 468
+    # Give each actual reminder count a deliberate, full-width list rhythm.
+    # Three items use three rows (not a compressed four-row grid); overflow stays explicit.
+    split = ({1: 390, 2: 350, 3: 310}.get(count, 270) if populated else 468)
     im = Image.new('L', (800, 480), 255)
     d = ImageDraw.Draw(im)
     dy = 0 if populated else 65
@@ -233,16 +235,19 @@ def render(now, weather, aqi=None, battery_percent=None, has_sidebar=False, remi
 
     if populated:
         _line(d, [(28, split), (772, split)])
-        _text(d, 28, split + 18, 'HOME', 16, 'mono')
         shown = min(4, count)
-        row_ys = ([split + 43, split + 93] if count <= 2 else [284, 326, 368, 410])
+        row_ys = {
+            1: [398],
+            2: [358, 410],
+            3: [318, 368, 418],
+        }.get(count, [278, 326, 374, 422])
         for i, reminder in enumerate(reminders[:shown]):
             y = row_ys[i]
             if i:
-                _line(d, [(30, y - 5), (770, y - 5)], .7)
-            _reminder_line(d, im, reminder, y, 772, 22 if count <= 2 else 20, 15 if count <= 2 else 14)
+                _line(d, [(28, y - 5), (772, y - 5)], 1)
+            _reminder_line(d, im, reminder, y, 772, 18, 15 if count <= 3 else 14)
         if count > shown:
-            _text(d, 690, 461, f'+{count - shown} MORE', 12, 'mono', anchor='ra')
+            _text(d, 772, 461, f'+{count - shown} MORE', 12, 'mono', anchor='ra')
 
     if battery_percent is not None:
         _text(d, 772, 468, f'BATTERY {battery_percent}%', 9, 'mono', anchor='ra')

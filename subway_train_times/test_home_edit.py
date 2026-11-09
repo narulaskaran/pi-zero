@@ -21,7 +21,7 @@ WEATHER = {
               'sunrise': ['2026-11-08T06:34', '2026-11-09T06:35', '2026-11-10T06:36'],
               'sunset': ['2026-11-08T16:44', '2026-11-09T16:43', '2026-11-10T16:42']}}
 NOW = datetime(2026, 11, 9, 18, 0)
-ARTIFACTS = Path('/opt/data/artifacts/eink/field-notes-deploy')
+ARTIFACTS = Path('/opt/data/artifacts/eink/crowded-layout-refinement')
 
 
 class FixedDateTime(datetime):
@@ -119,7 +119,7 @@ class FieldNotesTests(unittest.TestCase):
         stored = self.client.get('/display.bmp')
         self.assertEqual(stored.status_code, 200)
         with_image = Image.open(io.BytesIO(stored.data)).convert('L')
-        self.assertIsNotNone(ImageChops.difference(image, with_image).crop((32, 289, 50, 307)).getbbox())
+        self.assertIsNotNone(ImageChops.difference(image, with_image).crop((28, 279, 46, 297)).getbbox())
 
     def test_priority_start_expiry_crud_and_one_active_snapshot(self):
         self.post('low', 'banner', priority=1)
@@ -160,8 +160,8 @@ class FieldNotesTests(unittest.TestCase):
 
     def test_real_route_renders_title_and_body_in_each_reminder_row(self):
         fixtures = [
-            ([{'title': 'Row one title', 'text': 'First body is visible'}, {'title': 'Row two title', 'text': 'Second body is visible'}], [353, 403]),
-            ([{'title': f'Four row {i}', 'text': f'Body detail {i}'} for i in range(4)], [295, 337, 379, 421]),
+            ([{'title': 'Row one title', 'text': 'First body is visible'}, {'title': 'Row two title', 'text': 'Second body is visible'}], [358, 410]),
+            ([{'title': f'Four row {i}', 'text': f'Body detail {i}'} for i in range(4)], [278, 326, 374, 422]),
         ]
         for records, tops in fixtures:
             server.overlay_store.clear()
@@ -169,7 +169,7 @@ class FieldNotesTests(unittest.TestCase):
                 self.post(f'pixel-{i}', 'banner', record['title'], record['text'])
             image = self.bitmap().convert('L')
             for y in tops:
-                for band in ((200, y, 770, y + 21), (200, y + 22, 770, y + 40)):
+                for band in ((50, y, 770, y + 20), (50, y + 21, 770, y + 41)):
                     self.assertIsNotNone(ImageChops.invert(image.crop(band)).getbbox(), band)
 
     def test_fullscreen_route_uses_native_coordinates_and_shows_content_below_image(self):
@@ -198,21 +198,44 @@ class FieldNotesTests(unittest.TestCase):
             self.assertIsNone(REAL_GET_AIR_QUALITY(40, -74))
         self.assertEqual(home_edit.render(NOW, None, None).size, (800, 480))
 
-    def test_no_transit_fetch_and_route_produced_previews(self):
+    def test_real_bmp_route_proofs_all_requested_reminder_counts(self):
+        ARTIFACTS.mkdir(parents=True, exist_ok=True)
+        states = {
+            '0': [],
+            '1': [{'title': 'Water the plants', 'text': 'Check soil moisture'}],
+            '2': [{'title': 'Water the plants', 'text': 'Check soil moisture'},
+                  {'title': 'Take out recycling', 'text': 'Before collection'}],
+            '3': [{'title': f'Reminder {i}', 'text': f'Useful detail {i}'} for i in range(3)],
+            '4': [{'title': f'Reminder {i}', 'text': f'Useful detail {i}'} for i in range(4)],
+            '7': [{'title': f'Reminder {i}', 'text': f'Useful detail {i}'} for i in range(7)],
+            'long-text': [{'title': 'A reminder title that is intentionally far too long to fit on one line',
+                           'text': 'An unbroken body token ' + 'UNBROKEN' * 40}],
+        }
+        row_tops = {1: [398], 2: [358, 410], 3: [318, 368, 418], 4: [278, 326, 374, 422]}
+        for state, records in states.items():
+            server.overlay_store.clear()
+            for i, record in enumerate(records):
+                self.post(f'{state}-{i}', 'banner', record['title'], record['text'], priority=len(records)-i)
+            response = self.client.get('/display.bmp')
+            self.assertEqual(response.status_code, 200)
+            raw_image = Image.open(io.BytesIO(response.data))
+            self.assertEqual((raw_image.size, raw_image.mode), ((800, 480), '1'))
+            image = raw_image.convert('L')
+            self.assertEqual(response.mimetype, 'image/bmp')
+            (ARTIFACTS / f'{state}.bmp').write_bytes(response.data)
+            shown = min(4, len(records))
+            if shown:
+                tops = row_tops[shown]
+                for y in tops:
+                    self.assertIsNotNone(ImageChops.invert(image.crop((50, y, 770, y + 20))).getbbox(), (state, y, 'title'))
+                    self.assertIsNotNone(ImageChops.invert(image.crop((50, y + 21, 770, y + 41))).getbbox(), (state, y, 'body'))
+            if len(records) > shown:
+                self.assertIsNotNone(ImageChops.invert(image.crop((650, 450, 780, 478))).getbbox(), 'overflow label')
+            self.assertEqual(hashlib.sha256((ARTIFACTS / f'{state}.bmp').read_bytes()).hexdigest(), hashlib.sha256(response.data).hexdigest())
+
+    def test_no_transit_fetch(self):
         with patch.object(server, 'get_subway', side_effect=AssertionError('transit forbidden'), create=True):
-            ARTIFACTS.mkdir(parents=True, exist_ok=True)
-            for state, records in (('empty', []), ('two', [{'id': 'a', 'title': 'Water plants', 'text': 'Check the soil'}, {'id': 'b', 'title': 'Take out recycling', 'text': 'Before collection'}]), ('four', [{'id': str(i), 'title': f'Field note {i}', 'text': f'Useful detail {i}', 'priority': 4-i} for i in range(4)])):
-                server.overlay_store.clear()
-                for record in records:
-                    self.post(record['id'], 'banner', record['title'], record['text'], record.get('priority', 0))
-                response = self.client.get('/display.bmp')
-                self.assertEqual(response.status_code, 200)
-                im = Image.open(io.BytesIO(response.data)).convert('1')
-                out = ARTIFACTS / f'staged-{state}.png'
-                im.save(out)
-                self.assertEqual((im.size, im.mode), ((800, 480), '1'))
-                self.assertTrue(out.exists())
-                self.assertEqual(len(hashlib.sha256(out.read_bytes()).hexdigest()), 64)
+            self.assertEqual(self.client.get('/display.bmp').status_code, 200)
 
 
 if __name__ == '__main__':
