@@ -11,6 +11,7 @@ import threading
 import time
 from datetime import datetime, timedelta
 from pathlib import Path
+from zoneinfo import ZoneInfo
 
 import yaml
 import requests
@@ -118,9 +119,75 @@ def get_presence_detector():
 
 
 
-def calculate_refresh_rate():
-    """Fixed shared-home refresh interval, including away/night states."""
-    return 900
+REFRESH_POLICY_VERSION = "shared-presence-15-60-60-v1"
+REFRESH_HOME_SECONDS = 900
+REFRESH_AWAY_SECONDS = 3600
+REFRESH_NIGHT_SECONDS = 3600
+NEW_YORK = ZoneInfo("America/New_York")
+DEFAULT_NIGHT_HOURS = {"start": 1, "end": 7}
+
+
+def _night_hours(config):
+    """Return valid configured night hours, or the safe 1am-7am defaults."""
+    refresh_config = config.get("refresh_rate") if isinstance(config, dict) else None
+    value = refresh_config.get("night_hours") if isinstance(refresh_config, dict) else None
+    if not isinstance(value, dict):
+        return dict(DEFAULT_NIGHT_HOURS)
+    start, end = value.get("start"), value.get("end")
+    if (isinstance(start, bool) or isinstance(end, bool)
+            or not isinstance(start, int) or not isinstance(end, int)
+            or not 0 <= start <= 23 or not 0 <= end <= 23):
+        return dict(DEFAULT_NIGHT_HOURS)
+    return {"start": start, "end": end}
+
+
+def _is_night(local_now, hours):
+    start, end = hours["start"], hours["end"]
+    if start == end:
+        return False
+    if start < end:
+        return start <= local_now.hour < end
+    return local_now.hour >= start or local_now.hour < end
+
+
+def refresh_policy(now=None):
+    """Return (seconds, reason, night_hours) using fresh shared presence only.
+
+    Naive datetimes are interpreted as New York local time. Missing, stale, or
+    unreadable shared state is unknown and conservatively uses the home rate;
+    this reader never scans the network or invokes the legacy detector.
+    """
+    config = load_config()
+    hours = _night_hours(config if isinstance(config, dict) else {})
+    if now is None:
+        local_now = datetime.now(NEW_YORK)
+    elif now.tzinfo is None:
+        local_now = now.replace(tzinfo=NEW_YORK)
+    else:
+        local_now = now.astimezone(NEW_YORK)
+
+    if _is_night(local_now, hours):
+        return REFRESH_NIGHT_SECONDS, "night", hours
+
+    is_home = None
+    try:
+        if SharedPresenceState is not None:
+            state_home, _timestamp, is_stale = SharedPresenceState.read_state()
+            if not is_stale and isinstance(state_home, bool):
+                is_home = state_home
+    except Exception as exc:
+        logger.warning("Shared presence unavailable; using conservative home refresh: %s", exc)
+
+    if is_home is True:
+        return REFRESH_HOME_SECONDS, "home", hours
+    if is_home is False:
+        return REFRESH_AWAY_SECONDS, "away", hours
+    return REFRESH_HOME_SECONDS, "unknown", hours
+
+
+def calculate_refresh_rate(now=None):
+    """Return the effective refresh interval in seconds."""
+    return refresh_policy(now)[0]
 
 
 # ============ DATA ============
@@ -248,7 +315,8 @@ def get_status():
     """Debug endpoint showing current presence detection state."""
     try:
         config = load_config()
-        refresh_config = config.get("refresh_rate", {})
+        if not isinstance(config, dict):
+            config = {}
 
         status = {
             "timestamp": datetime.now().isoformat(),
@@ -280,13 +348,21 @@ def get_status():
         else:
             status["shared_state"] = {"error": "SharedPresenceState module not available"}
 
-        # Get refresh rate info
-        refresh_seconds = calculate_refresh_rate()
+        refresh_seconds, policy_reason, night_hours = refresh_policy()
         status["current_refresh_seconds"] = refresh_seconds
         status["current_refresh_minutes"] = refresh_seconds // 60
-
-        intervals = refresh_config.get("intervals", {})
-        status["configured_intervals"] = {"fast": 900, "slow": 900, "night": 900}
+        status["refresh_policy_version"] = REFRESH_POLICY_VERSION
+        status["refresh_policy_reason"] = policy_reason
+        status["refresh_policy_timezone"] = "America/New_York"
+        status["refresh_policy_night_hours"] = night_hours
+        status["server_sha256"] = hashlib.sha256(Path(__file__).read_bytes()).hexdigest()
+        intervals = {
+            "fast": REFRESH_HOME_SECONDS,
+            "slow": REFRESH_AWAY_SECONDS,
+            "night": REFRESH_NIGHT_SECONDS,
+        }
+        status["effective_intervals"] = intervals
+        status["configured_intervals"] = intervals
 
         return jsonify(status)
     except Exception as e:

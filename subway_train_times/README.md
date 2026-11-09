@@ -87,9 +87,9 @@ This project includes a Flask server that generates BMP images for display on a 
 
 ### Features
 
-- **Dynamic Refresh Rates**: 1-minute updates when you're home, 30-minute updates when away
-- **Night Mode**: Reduced updates (30 min) between 1am-7am
-- **Phone Presence Detection**: Automatically detects when your phone is on WiFi
+- **Adaptive Refresh Rates**: 15-minute updates when shared presence says someone is home; 60-minute updates when away or during night hours
+- **Night Mode**: Reduced updates between configured New York local-time hours (default 1am-7am; overnight ranges supported)
+- **Shared Phone Presence**: Reads the Waveshare display's shared cache; stale or unavailable state falls back to 15 minutes without triggering a network scan
 - **Battery Monitoring**: Optional battery percentage display (top middle)
 - **OTA Updates**: Update Arduino firmware wirelessly (no USB needed after initial flash)
 - **Zero-Touch Deployment**: Automatic updates via git pull + cron
@@ -122,16 +122,18 @@ refresh_rate:
     - "AA:BB:CC:DD:EE:FF"    # Your phone MAC address
     - "11:22:33:44:55:66"    # Partner's phone MAC (optional)
   intervals:
-    fast: 1      # Minutes when someone is home
-    slow: 30     # Minutes when no one is home
-    night: 30    # Minutes during night hours
+    fast: 15     # Fixed policy: minutes when shared presence says someone is home
+    slow: 60     # Fixed policy: minutes when shared presence says everyone is away
+    night: 60    # Fixed policy: minutes during night hours, regardless of presence
   night_hours:
-    start: 1     # 1am
-    end: 7       # 7am
-  detection_method: "arp-scan"  # or "dhcp-leases"
+    start: 1     # New York local time; night starts at 1am (inclusive)
+    end: 7       # Night ends at 7am (exclusive); overnight ranges such as 23-7 work
 
-# Stations configuration...
+# The refresh policy reads fresh shared presence only. Stale, missing, or
+# unreadable state uses the 15-minute home interval; it does not run arp-scan.
+# Legacy interval values (for example fast: 1, slow: 30) are not applied.
 ```
+
 
 **Finding MAC Addresses:**
 - Router: Admin page → Connected Devices
