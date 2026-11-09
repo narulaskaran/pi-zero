@@ -1,0 +1,34 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="700" height="430" viewBox="0 0 700 430">
+<rect width="700" height="430" fill="#fff"/>
+<!-- Interpretation/adaptation after Krollmann's Rainier poster and USGS aerial reference.
+     Broad profile and etched shadow contours are interpretive, not surveyed or glacier-mapped. -->
+<g fill="none" stroke="#111" stroke-linecap="round" stroke-linejoin="round">
+<!-- A wide glaciated massif: high off-center rounded crown, long west shoulder, steeper east shoulder -->
+<path stroke-width="3.7" d="M36 374 C82 340 123 301 161 262 C194 228 226 186 265 151 C294 125 321 105 348 99 C370 94 390 103 405 117 C423 134 436 158 451 182 C472 215 492 246 518 275 C548 310 583 341 618 360 C638 371 658 378 680 382"/>
+<!-- broken, low twin crest; no needle peak -->
+<path stroke-width="2.3" d="M306 127 Q325 112 342 108 L352 101 L365 111 Q382 110 397 123 L409 137"/>
+<!-- sweeping snow/rock boundaries that echo the broad dome -->
+<path stroke-width="2" d="M239 178 C282 148 317 136 351 134 C389 132 421 153 444 183"/>
+<path stroke-width="1.7" d="M210 215 C264 179 306 164 349 161 C396 158 438 182 464 216"/>
+<!-- Open white glacier tongues separated by dark ridges. Schematic interpretation only. -->
+<path stroke-width="2.4" d="M339 112 C335 154 326 187 310 220 C294 254 275 284 253 316"/>
+<path stroke-width="2.1" d="M385 119 C394 158 409 193 427 225 C447 261 470 291 496 321"/>
+<path stroke-width="1.8" d="M279 151 C267 188 248 221 226 252 C207 279 183 307 158 331"/>
+<path stroke-width="1.8" d="M438 168 C456 202 479 234 503 262 C526 289 552 315 578 336"/>
+<!-- Directional, broken engraved cuts: denser only on the shaded flanks -->
+<g stroke-width="1.5">
+<path d="M296 168 l-13 25 M311 160 l-12 29 M327 153 l-9 29 M343 151 l-6 27 M360 151 l1 27 M377 155 l6 26 M394 164 l10 26 M410 175 l13 27"/>
+<path d="M259 204 l-17 28 M277 192 l-15 29 M294 182 l-13 29 M421 200 l14 27 M438 215 l17 27 M455 233 l18 25"/>
+<path d="M222 249 l-20 26 M240 232 l-17 27 M255 217 l-15 26 M478 257 l20 24 M497 275 l21 23 M518 294 l22 22"/>
+<path d="M166 307 l23 -20 M183 324 l24 -19 M203 340 l24 -18 M535 317 l23 17 M553 334 l22 15 M575 350 l20 12"/>
+</g>
+<!-- Sparse cut facets, not invented glacier boundaries -->
+<g stroke-width="1.5">
+<path d="M289 213 l19 -8 M314 201 l18 -6 M365 196 l18 7 M395 206 l16 9"/>
+<path d="M263 252 l18 -8 M285 240 l15 -7 M418 248 l18 8 M442 263 l16 9"/>
+<path d="M205 300 l17 -11 M227 286 l16 -10 M484 300 l17 12 M506 315 l17 12"/>
+</g>
+<!-- Narrow separated contour marks at foot only; no black foreground field -->
+<path stroke-width="1.6" d="M46 380 Q104 366 152 373 M190 380 Q262 388 331 377 M372 379 Q432 388 485 376 M529 372 Q594 365 671 383"/>
+<path stroke-width="1.3" d="M91 371 l10 -9 11 7 M565 369 l11 -8 12 10"/>
+</g></svg>

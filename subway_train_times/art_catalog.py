@@ -47,6 +47,9 @@ def _image(filename, width, height, method, threshold):
     image.thumbnail((max(1, width), max(1, height)), Image.Resampling.LANCZOS)
     if method == 'threshold':
         image = image.point(lambda v: 255 if v > threshold else 0, '1')
+    elif method == 'dither':
+        # Match approved grayscale illustration proofs after fitting to the slot.
+        image = image.convert('1')
     elif method == 'ordered':
         matrix = ((0, 2), (3, 1))
         pixels = image.load()

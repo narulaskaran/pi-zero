@@ -1,7 +1,7 @@
 {
   "timezone": "America/New_York",
   "selection": "fixed weekday assignment; Monday=0",
-  "rights": "Monday/Tuesday verified public domain via The Met Collection API (isPublicDomain=true, URLs match records). Wednesday: Thomas Bewick, A Bird, c.1800 wood engraving, National Gallery of Art open access (public domain). Thursday: CC0 vector illustration via FreeSVG/OpenClipart (Statue of Liberty). Friday: Félix Vallotton, Swans, 1892 woodcut, artwork public domain (artist d. 1925); credit: Van Gogh Museum, Amsterdam (Vincent van Gogh Foundation). Saturday: CC0 Space Needle vector via FreeSVG/OpenClipart, redrawn with added architectural detail as an adapted illustration. Sunday: Mount Rainier vector interpretation after Gustav Wilhelm Krollmann's LOC poster (loc.gov/item/2010651155, rights advisory: no known restrictions on publication). Fonts separately licensed under OFL.",
+  "rights": "Monday-Thursday source rights unchanged. Friday: newly authored Eiffel Tower vector study, CC0 dedication, official history page used only for factual reference. Saturday: newly authored adaptation after FreeSVG/OpenClipart CC0 Space Needle illustration. Sunday: newly authored interpretation informed by the Krollmann LOC poster (no known restrictions) and factual reference; not Krollmann original linework. Provisional selections; fonts separately licensed OFL.",
   "artworks": [
     {
       "weekday": 0,
@@ -14,7 +14,12 @@
       "image_url": "https://images.metmuseum.org/CRDImages/dp/original/DT241450.jpg",
       "is_public_domain": true,
       "original_sha256": "0ef189016f40f7edd267b263ca1984d1deeb5e586ff3d9d45cc91f82e7f62988",
-      "crop_normalized": [0, 0.15, 1, 0.95],
+      "crop_normalized": [
+        0,
+        0.15,
+        1,
+        0.95
+      ],
       "file": "monday-356497.png",
       "sha256": "327f16a38dbdc423795e9469033bd113acdb2e91515a4d3dba02a373843e08ca",
       "method": "threshold",
@@ -31,7 +36,12 @@
       "image_url": "https://images.metmuseum.org/CRDImages/as/original/DP141063.jpg",
       "is_public_domain": true,
       "original_sha256": "ec8d11a36d2383942313625c3f7846f4c03f60e57a2cc5c3741f5616579325e4",
-      "crop_normalized": [0, 0, 1, 1],
+      "crop_normalized": [
+        0,
+        0,
+        1,
+        1
+      ],
       "file": "tuesday-36491.png",
       "sha256": "78417c4ea9ee919274aba3adbebf101df9c6b553c245868ca8d7ae3110560d9e",
       "method": "ordered",
@@ -72,53 +82,54 @@
     {
       "weekday": 4,
       "day": "Friday",
-      "object_id": "vangogh-p1480V2000",
-      "artist": "Félix Vallotton",
-      "title": "Swans (Les cygnes), 1892 woodcut",
-      "caption": "Vallotton · Swans",
-      "source_url": "https://www.vangoghmuseum.nl/en/prints/collection/p1480V2000",
-      "image_url": "https://iiif.micr.io/eNYYK/full/1600,/0/default.jpg",
+      "object_id": "eiffel-authored-study",
+      "artist": "Newly authored Eiffel Tower illustration",
+      "title": "Eiffel Tower (line study)",
+      "caption": "Eiffel Tower",
+      "source_url": "https://www.toureiffel.paris/en/the-monument/history",
+      "source_note": "Factual structural reference only; newly authored vector, not an image copied from this page.",
+      "rights_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+      "rights_note": "New illustration dedicated CC0; not an historic engraving.",
       "is_public_domain": true,
-      "credit": "Van Gogh Museum, Amsterdam (Vincent van Gogh Foundation)",
-      "original_sha256": "9bf01a0387346bc2eb7f1f612f2fc390dfcba5e2a8d3cb1284327b805f134074",
-      "file": "friday-swans.png",
-      "sha256": "6a18dbaf64cb51e460d89515bf7b0f776feb3d6b494777a444114ee174b2ba6d",
+      "file": "friday-eiffel.png",
       "method": "threshold",
-      "threshold": 128
+      "threshold": 190,
+      "sha256": "0a1f4ded43e43beebde51e774dd01c8fbee1477cc321e36fc46f35df66ed25a4",
+      "selection_status": "provisional; further refinement requested"
     },
     {
       "weekday": 5,
       "day": "Saturday",
-      "object_id": "adapted-space-needle",
+      "object_id": "space-needle-refined-study",
       "artist": "Space Needle (CC0 vector, adapted architectural line study)",
-      "title": "Space Needle, adapted",
+      "title": "Space Needle (refined adapted study)",
       "caption": "Space Needle",
       "source_url": "https://freesvg.org/1553181540",
-      "image_url": "https://freesvg.org/img/1553181540.png",
       "is_public_domain": true,
-      "adaptation_note": "Editable SVG redraw with added deck/glazing/support detail; labeled adapted, not historic source linework.",
-      "file": "saturday-needle.png",
-      "sha256": "d034fa04c12106dd4f3b39a0aeffb1d3b5dc81dbae246c7118e11241860a5ecc",
-      "method": "threshold",
-      "threshold": 170
+      "adaptation_note": "New editable vector adaptation after CC0 landmark illustration; structural detail interpreted, not a measured engineering drawing.",
+      "file": "saturday-needle-refined.png",
+      "sha256": "38c8a52403bd48a51dd88c99515310d15c948a88a7beefbff348d1b77f5c3860",
+      "method": "dither",
+      "threshold": 170,
+      "selection_status": "provisional; further refinement requested"
     },
     {
       "weekday": 6,
       "day": "Sunday",
-      "object_id": "after-krollmann-rainier-v2",
-      "artist": "Mount Rainier, after Gustav Wilhelm Krollmann",
-      "title": "Mount Rainier (vector interpretation)",
+      "object_id": "rainier-refined-study",
+      "artist": "Newly authored Mount Rainier interpretation",
+      "title": "Mount Rainier (refined interpretation)",
       "caption": "Mount Rainier",
       "source_url": "https://www.loc.gov/item/2010651155/",
-      "image_url": "https://tile.loc.gov/storage-services/service/pnp/ppmsca/30600/30688v.jpg",
       "is_public_domain": true,
       "credit": "Library of Congress, Prints & Photographs Division, ppmsca.30688",
       "original_sha256": "51aa0eacb387392f9f75c33e4a41aaad7e899fa0113b93fafa04ce2241774d9f",
-      "adaptation_note": "Hand-authored engraving-style vector; interpretation, not surveyed geography.",
-      "file": "sunday-rainier.png",
-      "sha256": "72c7ee8d2df28896c6add69e30e69d9a634f863cc43982c0d49b87106d621e93",
+      "adaptation_note": "Newly authored vector interpretation informed by Krollmann poster and reference photographs; illustrative contours, not verified glacier geography. Full-resolution cropped source preserves the selected proof.",
+      "file": "sunday-rainier-refined.png",
+      "sha256": "6d0fc1a01c88ad5527027b9752855b3885c6bdfe4b3b025546d4d275a44490be",
       "method": "threshold",
-      "threshold": 170
+      "threshold": 170,
+      "selection_status": "provisional; further refinement requested"
     }
   ]
 }

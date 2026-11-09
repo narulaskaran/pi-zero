@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 640" width="400" height="640" role="img" aria-labelledby="title desc">
+  <title id="title">Space Needle — engraved vector adaptation</title>
+  <desc id="desc">A black-line architectural adaptation of the Space Needle, preserving its spire, saucer observation deck, divided window band, tripod supports and sparse connecting platforms. Restrained directional hatching shades the structure; the sky remains white.</desc>
+  <rect width="400" height="640" fill="#fff"/>
+  <defs>
+    <clipPath id="left-support-hatch"><path d="M145 225 Q151 271 168 320 Q181 361 190 414 L164 503 Q155 533 132 578 L106 580 Q130 527 138 492 Q153 429 153 380 Q153 314 145 225Z M119 225 Q135 287 132 348 Q130 413 119 469 Q111 519 80 579 L104 585 Q139 530 151 477 Q166 411 158 351 Q151 286 145 225Z"/></clipPath>
+    <clipPath id="right-support-hatch"><path d="M255 225 Q249 271 232 320 Q219 361 210 414 L236 503 Q245 533 268 578 L294 580 Q270 527 262 492 Q247 429 247 380 Q247 314 255 225Z M281 225 Q265 287 268 348 Q270 413 281 469 Q289 519 320 579 L296 585 Q261 530 249 477 Q234 411 242 351 Q249 286 255 225Z"/></clipPath>
+    <clipPath id="both-supports-hatch"><path d="M145 225 Q151 271 168 320 Q181 361 190 414 L164 503 Q155 533 132 578 L106 580 Q130 527 138 492 Q153 429 153 380 Q153 314 145 225Z M119 225 Q135 287 132 348 Q130 413 119 469 Q111 519 80 579 L104 585 Q139 530 151 477 Q166 411 158 351 Q151 286 145 225Z M255 225 Q249 271 232 320 Q219 361 210 414 L236 503 Q245 533 268 578 L294 580 Q270 527 262 492 Q247 429 247 380 Q247 314 255 225Z M281 225 Q265 287 268 348 Q270 413 281 469 Q289 519 320 579 L296 585 Q261 530 249 477 Q234 411 242 351 Q249 286 255 225Z"/></clipPath>
+  </defs>
+  <g fill="none" stroke="#111" stroke-linecap="round" stroke-linejoin="round">
+    <!-- antenna and compact crown -->
+    <path d="M200 34 L200 102 M196.5 101 Q200 96 203.5 101 L206 116 Q200 120 194 116 Z" stroke-width="2.2"/>
+    <path d="M200 40 L200 92 M198.5 102 L198.5 115" stroke-width="1"/>
+    <!-- shallow upper roof and outer observation-deck rim -->
+    <path d="M81 157 Q89 137 121 128 Q157 119 200 119 Q243 119 279 128 Q311 137 319 157 Q312 165 291 168 Q250 173 200 173 Q150 173 109 168 Q88 165 81 157Z" fill="#fff" stroke-width="3.3"/>
+    <path d="M94 155 Q118 132 200 130 Q282 132 306 155" stroke-width="1.05"/>
+    <path d="M103 158 Q142 166 200 166 Q258 166 297 158" stroke-width="1.05"/>
+    <!-- roof edge engraving: short, sparse radial marks -->
+    <g stroke-width="1">
+      <path d="M113 143l-5 9 M126 139l-4 11 M141 136l-3 11 M157 133l-2 12 M174 132l-1 12 M190 131v12 M210 131v12 M227 132l1 12 M244 133l2 12 M260 136l3 11 M276 139l4 11 M289 143l5 9"/>
+      <path d="M120 157l-3 5 M137 158l-2 5 M155 160l-1 5 M174 161v5 M192 161v5 M210 161v5 M228 161v5 M246 160l1 5 M264 158l2 5 M281 157l3 5"/>
+    </g>
+    <!-- continuous glazed observation-room band; fine vertical bays retain the real lantern-like ring -->
+    <path d="M87 168 Q119 176 200 177 Q281 176 313 168 L308 198 Q277 208 200 209 Q123 208 92 198 Z" fill="#fff" stroke-width="3.3"/>
+    <path d="M91 181 Q137 190 200 190 Q263 190 309 181" stroke-width="1"/>
+    <path d="M93 197 Q136 205 200 205 Q264 205 307 197" stroke-width="1"/>
+    <!-- mullions follow the bowed glazing -->
+    <g stroke-width="1.15">
+      <path d="M107 172l3 28 M122 175l2 29 M138 177l1 29 M154 178v29 M169 179v29 M185 179v29 M201 179v29 M217 179v29 M233 178v29 M249 177l-1 29 M265 175l-2 29 M281 172l-3 28 M296 170l-4 28"/>
+    </g>
+    <!-- lightly shadowed glass panes, etched diagonals not filled black -->
+    <g stroke-width="1.05">
+      <path d="M113 178l8 10 M128 180l8 9 M144 182l8 8 M161 183l7 7 M177 183l7 7 M193 183l6 7 M209 183l6 7 M225 182l6 8 M241 181l6 8 M257 179l7 9 M273 177l8 10"/>
+    </g>
+    <!-- projecting deck ring and sunburst-like radial soffit ribs, checked against reference photos -->
+    <path d="M91 202 Q122 212 200 213 Q278 212 309 202 L315 214 Q286 225 200 226 Q114 225 85 214 Z" fill="#fff" stroke-width="1.8"/>
+    <path d="M99 207 Q140 217 200 217 Q260 217 301 207" stroke-width="1"/>
+    <g stroke-width="1">
+      <path d="M105 208l-7 6 M117 211l-5 8 M132 214l-3 9 M149 216l-1 9 M168 217v9 M187 218v9 M207 218v9 M226 217v9 M245 216l1 9 M264 214l3 9 M282 211l5 8 M295 208l7 6"/>
+    </g>
+    <!-- lower ring shadow, restrained close hatch -->
+    <path d="M119 226 Q153 231 200 231 Q247 231 281 226" stroke-width="1.2"/>
+    <g stroke-width="1.05">
+      <path d="M126 226l-3 5 M136 227l-3 5 M146 228l-3 5 M157 229l-2 5 M168 230l-2 5 M179 230l-1 5 M190 230v5 M201 230v5 M212 230v5 M223 230l1 5 M234 230l2 5 M245 229l2 5 M256 228l3 5 M267 227l3 5"/>
+    </g>
+    <!-- narrow central lift/service core, open between the three swept supports -->
+    <path d="M188 226 L188 490 L212 490 L212 226" fill="#fff" stroke-width="1.5"/>
+    <path d="M194 232L194 480 M206 232L206 480" stroke-width="1"/>
+    <path d="M188 257h24 M188 296h24 M188 337h24 M188 379h24 M188 420h24 M188 462h24" stroke-width="1"/>
+    <g stroke-width="1.05"><path d="M190 266l8-8 M190 275l16-16 M190 284l16-16 M190 305l8-8 M190 314l16-16 M190 323l16-16 M190 346l8-8 M190 355l16-16 M190 364l16-16 M190 388l8-8 M190 397l16-16 M190 406l16-16 M190 430l8-8 M190 439l16-16 M190 448l16-16"/></g>
+    <!-- three-legged support frame: rear members first -->
+    <path d="M145 225 Q151 271 168 320 Q181 361 190 414 L164 503 Q155 533 132 578 L106 580 Q130 527 138 492 Q153 429 153 380 Q153 314 145 225Z" fill="#fff" stroke-width="3.3"/>
+    <path d="M255 225 Q249 271 232 320 Q219 361 210 414 L236 503 Q245 533 268 578 L294 580 Q270 527 262 492 Q247 429 247 380 Q247 314 255 225Z" fill="#fff" stroke-width="3.3"/>
+    <!-- central rear tripod leg, seen through the open frame -->
+    <path d="M196 224 Q191 304 194 362 L200 405 L206 362 Q209 304 204 224Z" fill="#fff" stroke-width="1.25"/>
+    <!-- curved outside legs, thick enough to read at native board size -->
+    <path d="M119 225 Q135 287 132 348 Q130 413 119 469 Q111 519 80 579 L104 585 Q139 530 151 477 Q166 411 158 351 Q151 286 145 225Z" fill="#fff" stroke-width="3.6"/>
+    <path d="M281 225 Q265 287 268 348 Q270 413 281 469 Q289 519 320 579 L296 585 Q261 530 249 477 Q234 411 242 351 Q249 286 255 225Z" fill="#fff" stroke-width="3.6"/>
+    <!-- Keep the actual open tripod character; no invented all-over diagonal lattice. -->
+    <!-- two real cross-platform levels divide the open tripod shaft -->
+    <path d="M128 379 Q200 394 272 379 L270 386 Q200 402 130 386Z" fill="#fff" stroke-width="1.25"/>
+    <path d="M116 464 Q200 478 284 464 L281 472 Q200 487 119 472Z" fill="#fff" stroke-width="1.25"/>
+    <!-- base footing / three separated leg ends -->
+    <path d="M76 580 Q91 575 108 581 L104 589 Q87 590 72 587Z M292 581 Q309 575 324 580 L328 587 Q313 590 296 589Z" fill="#fff" stroke-width="1.6"/>
+    <!-- shadows: clipped directional hatching along structural side faces -->
+    <g stroke-width="1" clip-path="url(#both-supports-hatch)">
+      <path d="M126 246l9 12 M128 259l11 14 M130 274l11 14 M132 290l11 14 M133 307l11 14 M133 324l12 14 M132 342l13 14 M131 360l14 14 M130 379l15 14 M128 399l15 14 M126 419l15 14 M123 440l15 14 M119 462l14 13 M114 484l13 12 M108 506l12 11 M101 529l11 10 M92 551l10 9 M84 570l8 7"/>
+      <path d="M274 246l-9 12 M272 259l-11 14 M270 274l-11 14 M268 290l-11 14 M267 307l-11 14 M267 324l-12 14 M268 342l-13 14 M269 360l-14 14 M270 379l-15 14 M272 399l-15 14 M274 419l-15 14 M277 440l-15 14 M281 462l-14 13 M286 484l-13 12 M292 506l-12 11 M299 529l-11 10 M308 551l-10 9 M316 570l-8 7"/>
+      <path d="M152 238l8 10 M153 252l8 10 M155 267l8 10 M157 282l8 10 M159 298l8 10 M161 314l8 10 M164 330l8 10 M166 347l8 10 M168 364l8 10 M169 382l8 10 M169 401l8 10 M168 420l8 10 M165 440l8 10 M161 460l8 10 M156 480l8 10 M150 500l8 10 M143 520l8 10 M135 540l8 10 M126 559l8 10"/>
+      <path d="M248 238l-8 10 M247 252l-8 10 M245 267l-8 10 M243 282l-8 10 M241 298l-8 10 M239 314l-8 10 M236 330l-8 10 M234 347l-8 10 M232 364l-8 10 M231 382l-8 10 M231 401l-8 10 M232 420l-8 10 M235 440l-8 10 M239 460l-8 10 M244 480l-8 10 M250 500l-8 10 M257 520l-8 10 M265 540l-8 10 M274 559l-8 10"/>
+    </g>
+    <!-- slim shadow edge on the service core; sparse diagonal cuts -->
+    <g stroke-width=".95"><path d="M205 247l5-5 M205 260l5-5 M205 273l5-5 M205 286l5-5 M205 299l5-5 M205 312l5-5 M205 325l5-5 M205 338l5-5 M205 351l5-5 M205 364l5-5 M205 377l5-5 M205 390l5-5 M205 403l5-5 M205 416l5-5 M205 429l5-5 M205 442l5-5 M205 455l5-5 M205 468l5-5"/></g>
+    <!-- etched edges on curved structural legs -->
+    <g stroke-width=".95"><path d="M124 315l7 6 M123 331l8 6 M122 348l8 6 M121 365l8 6 M119 383l9 6 M117 401l9 6 M114 420l9 6 M111 439l9 6 M107 458l9 6 M102 478l9 6 M97 498l9 6 M91 518l9 6 M84 539l9 6 M78 559l8 5"/><path d="M276 315l-7 6 M277 331l-8 6 M278 348l-8 6 M279 365l-8 6 M281 383l-9 6 M283 401l-9 6 M286 420l-9 6 M289 439l-9 6 M293 458l-9 6 M298 478l-9 6 M303 498l-9 6 M309 518l-9 6 M316 539l-9 6 M322 559l-8 5"/></g>
+  </g>
+</svg>

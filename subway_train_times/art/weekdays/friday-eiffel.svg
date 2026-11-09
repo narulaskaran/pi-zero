@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="1200" viewBox="0 0 1000 1200">
+<rect width="1000" height="1200" fill="#fff"/>
+<g fill="none" stroke="#171717" stroke-linecap="round" stroke-linejoin="round">
+<!-- Accurate four-legged Eiffel Tower elevation: tapered legs, first/second platforms, summit and antenna. -->
+<g stroke-width="8">
+ <path d="M500 75 L478 159 L421 236 L292 459 L148 727 L88 965 L60 1114"/>
+ <path d="M500 75 L522 159 L579 236 L708 459 L852 727 L912 965 L940 1114"/>
+ <path d="M500 75 L490 159 L453 236 L388 459 L316 727 L250 965 L205 1114"/>
+ <path d="M500 75 L510 159 L547 236 L612 459 L684 727 L750 965 L795 1114"/>
+ <path d="M468 157 L532 157 M408 231 L592 231 M280 451 L720 451 M135 718 L865 718 M78 957 L922 957 M52 1108 L948 1108"/>
+</g>
+<!-- Crown, mast and summit details -->
+<g stroke-width="5"><path d="M500 30V77 M488 79H512 M480 92H520 M474 111H526 M463 143H537 M451 163H549"/><path d="M480 92H520L511 124H489Z M474 111L489 124 M526 111L511 124"/></g>
+<!-- observation levels, parapets, window rhythm -->
+<g stroke-width="7"><path d="M354 422H646 M340 435H660 M236 687H764 M220 701H780"/></g>
+<g stroke-width="3"><path d="M365 405V422 M390 405V422 M415 405V422 M440 405V422 M465 405V422 M490 405V422 M515 405V422 M540 405V422 M565 405V422 M590 405V422 M615 405V422 M635 405V422"/>
+<path d="M255 669V687 M285 669V687 M315 669V687 M345 669V687 M375 669V687 M405 669V687 M435 669V687 M465 669V687 M495 669V687 M525 669V687 M555 669V687 M585 669V687 M615 669V687 M645 669V687 M675 669V687 M705 669V687 M735 669V687"/></g>
+<!-- Large lower arch and upper arch: signature ironwork -->
+<g stroke-width="9"><path d="M292 459 C319 506 350 553 390 586 Q500 660 610 586 C650 553 681 506 708 459"/>
+<path d="M148 727 C188 800 249 861 320 900 Q500 985 680 900 C751 861 812 800 852 727"/></g>
+<!-- Main lattice panels with diagonal bracing at each elevation -->
+<g stroke-width="5">
+<!-- lower legs -->
+<path d="M148 727L316 727L205 1114 M852 727L684 727L795 1114 M148 727L250 965L316 727 M852 727L750 965L684 727"/>
+<!-- lower cross bracing repeated -->
+<path d="M130 800L295 930 M111 876L274 1001 M95 951L251 1067 M870 800L705 930 M889 876L726 1001 M905 951L749 1067"/>
+<!-- middle tier -->
+<path d="M292 459L388 459L316 727 M708 459L612 459L684 727 M292 459L421 236L388 459 M708 459L579 236L612 459"/>
+<path d="M330 530L402 606 M367 466L449 575 M670 530L598 606 M633 466L551 575 M365 635L393 690 M635 635L607 690"/>
+<!-- upper narrowing tiers -->
+<path d="M421 236L453 236L388 459 M579 236L547 236L612 459 M453 236L478 159L490 159 M547 236L522 159L510 159"/>
+<path d="M433 260L464 294 M447 218L475 253 M566 260L535 294 M553 218L525 253 M414 310L455 352 M586 310L545 352 M399 361L444 403 M601 361L556 403"/>
+</g>
+<!-- selective, restrained engraving hatching on interior shadow faces -->
+<g stroke-width="2.6" opacity=".78">
+<path d="M169 746l36 46 M188 741l36 45 M831 746l-36 46 M812 741l-36 45"/>
+<path d="M314 471l28 33 M328 466l28 33 M686 471l-28 33 M672 466l-28 33"/>
+<path d="M452 177l15 17 M548 177l-15 17"/>
+</g>
+<!-- base feet and ground line, kept light -->
+<g stroke-width="5"><path d="M48 1116H277 M723 1116H952"/></g>
+</g>
+</svg>
