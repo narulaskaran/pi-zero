@@ -215,6 +215,9 @@ def render(now, weather, aqi=None, battery_percent=None, has_sidebar=False, remi
     air_label = str(air_value) if air_value is not None else '--'
     _text(d, 28, 18, now.strftime('%a %d %b').upper(), 17, 'mono')
     _text(d, 772, 18, 'NEW YORK', 16, 'mono', anchor='ra')
+    # Image-generation time, not a ticking clock or upstream weather observation.
+    updated = now.strftime('%I:%M %p').lstrip('0')
+    _text(d, 400, 36, f'UPDATED {updated} ET', 14, 'mono', anchor='ma')
     _line(d, [(28, 54), (772, 54)])
     temp_size = 78
     while temp_size > 40 and d.textlength(temp, font=font(temp_size, 'sans', weight=560)) > 155:
