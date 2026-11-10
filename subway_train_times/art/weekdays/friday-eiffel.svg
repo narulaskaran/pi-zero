@@ -1,43 +1,50 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1000" height="1200" viewBox="0 0 1000 1200">
 <rect width="1000" height="1200" fill="#fff"/>
-<g fill="none" stroke="#171717" stroke-linecap="round" stroke-linejoin="round">
-<!-- Accurate four-legged Eiffel Tower elevation: tapered legs, first/second platforms, summit and antenna. -->
-<g stroke-width="8">
- <path d="M500 75 L478 159 L421 236 L292 459 L148 727 L88 965 L60 1114"/>
- <path d="M500 75 L522 159 L579 236 L708 459 L852 727 L912 965 L940 1114"/>
- <path d="M500 75 L490 159 L453 236 L388 459 L316 727 L250 965 L205 1114"/>
- <path d="M500 75 L510 159 L547 236 L612 459 L684 727 L750 965 L795 1114"/>
- <path d="M468 157 L532 157 M408 231 L592 231 M280 451 L720 451 M135 718 L865 718 M78 957 L922 957 M52 1108 L948 1108"/>
+<g fill="none" stroke="#111" stroke-linecap="round" stroke-linejoin="round">
+<!-- Structural contour: four tapered legs, six cross-girders, twin observation decks and crown. -->
+<g stroke-width="9">
+ <path d="M500 30 L478 159 L421 236 L292 459 L148 727 L88 965 L60 1114 M500 30 L522 159 L579 236 L708 459 L852 727 L912 965 L940 1114"/>
+ <path d="M500 30 L490 159 L453 236 L388 459 L316 727 L250 965 L205 1114 M500 30 L510 159 L547 236 L612 459 L684 727 L750 965 L795 1114"/>
 </g>
-<!-- Crown, mast and summit details -->
-<g stroke-width="5"><path d="M500 30V77 M488 79H512 M480 92H520 M474 111H526 M463 143H537 M451 163H549"/><path d="M480 92H520L511 124H489Z M474 111L489 124 M526 111L511 124"/></g>
-<!-- observation levels, parapets, window rhythm -->
+<g stroke-width="5"><path d="M468 157H532 M408 231H592 M280 451H720 M135 718H865 M78 957H922 M52 1108H948"/>
+ <path d="M500 30V80 M486 88H514 M477 111H523 M465 145H535"/>
+</g>
+<!-- The two open arches and deck slabs carry the silhouette; keep clear white apertures. -->
+<g stroke-width="10"><path d="M292 459 C319 506 350 553 390 586 Q500 660 610 586 C650 553 681 506 708 459"/>
+ <path d="M148 727 C188 800 249 861 320 900 Q500 985 680 900 C751 861 812 800 852 727"/></g>
 <g stroke-width="7"><path d="M354 422H646 M340 435H660 M236 687H764 M220 701H780"/></g>
-<g stroke-width="3"><path d="M365 405V422 M390 405V422 M415 405V422 M440 405V422 M465 405V422 M490 405V422 M515 405V422 M540 405V422 M565 405V422 M590 405V422 M615 405V422 M635 405V422"/>
-<path d="M255 669V687 M285 669V687 M315 669V687 M345 669V687 M375 669V687 M405 669V687 M435 669V687 M465 669V687 M495 669V687 M525 669V687 M555 669V687 M585 669V687 M615 669V687 M645 669V687 M675 669V687 M705 669V687 M735 669V687"/></g>
-<!-- Large lower arch and upper arch: signature ironwork -->
-<g stroke-width="9"><path d="M292 459 C319 506 350 553 390 586 Q500 660 610 586 C650 553 681 506 708 459"/>
-<path d="M148 727 C188 800 249 861 320 900 Q500 985 680 900 C751 861 812 800 852 727"/></g>
-<!-- Main lattice panels with diagonal bracing at each elevation -->
-<g stroke-width="5">
-<!-- lower legs -->
-<path d="M148 727L316 727L205 1114 M852 727L684 727L795 1114 M148 727L250 965L316 727 M852 727L750 965L684 727"/>
-<!-- lower cross bracing repeated -->
-<path d="M130 800L295 930 M111 876L274 1001 M95 951L251 1067 M870 800L705 930 M889 876L726 1001 M905 951L749 1067"/>
-<!-- middle tier -->
-<path d="M292 459L388 459L316 727 M708 459L612 459L684 727 M292 459L421 236L388 459 M708 459L579 236L612 459"/>
-<path d="M330 530L402 606 M367 466L449 575 M670 530L598 606 M633 466L551 575 M365 635L393 690 M635 635L607 690"/>
-<!-- upper narrowing tiers -->
-<path d="M421 236L453 236L388 459 M579 236L547 236L612 459 M453 236L478 159L490 159 M547 236L522 159L510 159"/>
-<path d="M433 260L464 294 M447 218L475 253 M566 260L535 294 M553 218L525 253 M414 310L455 352 M586 310L545 352 M399 361L444 403 M601 361L556 403"/>
+<!-- Platform balustrades, repeated window bays and structural posts. -->
+<g stroke-width="2.5">
+ <path d="M365 405V422 M390 405V422 M415 405V422 M440 405V422 M465 405V422 M490 405V422 M515 405V422 M540 405V422 M565 405V422 M590 405V422 M615 405V422 M635 405V422"/>
+ <path d="M255 669V687 M285 669V687 M315 669V687 M345 669V687 M375 669V687 M405 669V687 M435 669V687 M465 669V687 M495 669V687 M525 669V687 M555 669V687 M585 669V687 M615 669V687 M645 669V687 M675 669V687 M705 669V687 M735 669V687"/>
 </g>
-<!-- selective, restrained engraving hatching on interior shadow faces -->
-<g stroke-width="2.6" opacity=".78">
-<path d="M169 746l36 46 M188 741l36 45 M831 746l-36 46 M812 741l-36 45"/>
-<path d="M314 471l28 33 M328 466l28 33 M686 471l-28 33 M672 466l-28 33"/>
-<path d="M452 177l15 17 M548 177l-15 17"/>
+<!-- Primary diagonal iron bracing: broad facets, distinct from tonal engraving below. -->
+<g stroke-width="4.3">
+ <path d="M148 727L316 727L205 1114 M852 727L684 727L795 1114 M148 727L250 965L316 727 M852 727L750 965L684 727"/>
+ <path d="M130 800L295 930 M111 876L274 1001 M95 951L251 1067 M870 800L705 930 M889 876L726 1001 M905 951L749 1067"/>
+ <path d="M292 459L388 459L316 727 M708 459L612 459L684 727 M292 459L421 236L388 459 M708 459L579 236L612 459"/>
+ <path d="M330 530L402 606 M367 466L449 575 M670 530L598 606 M633 466L551 575 M365 635L393 690 M635 635L607 690"/>
+ <path d="M421 236L453 236L388 459 M579 236L547 236L612 459 M453 236L478 159L490 159 M547 236L522 159L510 159"/>
+ <path d="M433 260L464 294 M447 218L475 253 M566 260L535 294 M553 218L525 253 M414 310L455 352 M586 310L545 352 M399 361L444 403 M601 361L556 403"/>
 </g>
-<!-- base feet and ground line, kept light -->
+<!-- Engraved iron: one directional light on the left faces, deeper cross-hatched shadow on right-facing inner members. Mark density follows taper and gathers under deck plates; it is not a uniform lattice overlay. -->
+<g stroke="#333" stroke-width="2.2" opacity=".86">
+ <!-- broad lower-leg shadow planes -->
+ <path d="M160 748l22 36 M174 743l23 37 M189 738l23 38 M204 734l23 39 M219 732l22 37 M834 748l-22 36 M820 743l-23 37 M805 738l-23 38 M790 734l-23 39 M775 732l-22 37"/>
+ <path d="M180 782l33 22 M197 782l34 22 M214 782l34 22 M231 782l34 22 M820 782l-33 22 M803 782l-34 22 M786 782l-34 22 M769 782l-34 22"/>
+ <path d="M116 849l20 31 M130 845l20 31 M145 841l20 31 M159 838l20 31 M174 835l20 31 M188 832l20 31 M884 849l-20 31 M870 845l-20 31 M855 841l-20 31 M841 838l-20 31 M826 835l-20 31 M812 832l-20 31"/>
+ <path d="M96 929l19 30 M110 925l19 30 M124 921l19 30 M138 918l19 30 M152 914l19 30 M166 911l19 30 M904 929l-19 30 M890 925l-19 30 M876 921l-19 30 M862 918l-19 30 M848 914l-19 30 M834 911l-19 30"/>
+ <!-- clustered cross-hatch under the two platforms and through the arch shoulders -->
+ <path d="M306 468l22 27 M320 465l23 28 M335 462l23 29 M350 460l24 30 M694 468l-22 27 M680 465l-23 28 M665 462l-23 29 M650 460l-24 30"/>
+ <path d="M318 492l28-19 M333 510l29-20 M349 528l30-20 M365 545l30-19 M682 492l-28-19 M667 510l-29-20 M651 528l-30-20 M635 545l-30-19"/>
+ <path d="M163 743l30 24 M179 741l31 25 M196 739l32 25 M213 738l32 25 M837 743l-30 24 M821 741l-31 25 M804 739l-32 25 M787 738l-32 25"/>
+ <!-- tapering upper iron shadows; short, tighter strokes, leaving open sky -->
+ <path d="M430 252l17 20 M440 246l17 19 M450 241l16 18 M570 252l-17 20 M560 246l-17 19 M550 241l-16 18 M402 482l19 23 M414 478l19 23 M426 474l18 22 M598 482l-19 23 M586 478l-19 23 M574 474l-18 22"/>
+ <!-- deck undersides: horizontal shadow hatching and vertical support shadows -->
+ <path d="M358 439l14 8 M382 439l14 8 M406 439l14 8 M430 439l14 8 M454 439l14 8 M478 439l14 8 M502 439l14 8 M526 439l14 8 M550 439l14 8 M574 439l14 8 M598 439l14 8 M622 439l14 8"/>
+ <path d="M246 706l17 9 M274 706l17 9 M302 706l17 9 M330 706l17 9 M358 706l17 9 M386 706l17 9 M414 706l17 9 M442 706l17 9 M470 706l17 9 M498 706l17 9 M526 706l17 9 M554 706l17 9 M582 706l17 9 M610 706l17 9 M638 706l17 9 M666 706l17 9 M694 706l17 9 M722 706l17 9"/>
+</g>
+<!-- Small rivet/brace joints, sparingly punctuated -->
+<g fill="#222" stroke="none"><circle cx="292" cy="459" r="4"/><circle cx="708" cy="459" r="4"/><circle cx="148" cy="727" r="4"/><circle cx="852" cy="727" r="4"/><circle cx="316" cy="727" r="3"/><circle cx="684" cy="727" r="3"/><circle cx="500" cy="231" r="3"/><circle cx="500" cy="451" r="3"/><circle cx="500" cy="718" r="3"/></g>
 <g stroke-width="5"><path d="M48 1116H277 M723 1116H952"/></g>
-</g>
-</svg>
+</g></svg>
