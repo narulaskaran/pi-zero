@@ -1,50 +1,79 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="1200" viewBox="0 0 1000 1200">
-<rect width="1000" height="1200" fill="#fff"/>
-<g fill="none" stroke="#111" stroke-linecap="round" stroke-linejoin="round">
-<!-- Structural contour: four tapered legs, six cross-girders, twin observation decks and crown. -->
-<g stroke-width="9">
- <path d="M500 30 L478 159 L421 236 L292 459 L148 727 L88 965 L60 1114 M500 30 L522 159 L579 236 L708 459 L852 727 L912 965 L940 1114"/>
- <path d="M500 30 L490 159 L453 236 L388 459 L316 727 L250 965 L205 1114 M500 30 L510 159 L547 236 L612 459 L684 727 L750 965 L795 1114"/>
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="1431" viewBox="0 0 1200 1431">
+<rect width="1200" height="1431" fill="#fff"/>
+<g stroke="#111" stroke-linecap="round" stroke-linejoin="round">
+  <!-- Crown and the long, narrowing shaft. -->
+  <g fill="none">
+    <path d="M600 42V106M589 105L600 42 611 105M580 121H620M585 119V155M615 119V155M570 156H630" stroke-width="7"/>
+    <path d="M568 158Q600 172 632 158L646 190 637 222 563 222 554 190Z" fill="#111" stroke-width="4"/>
+    <path d="M566 187H634M563 201H637M575 165L581 219M600 165V219M625 165L619 219" stroke="#fff" stroke-width="4"/>
+    <path d="M555 224C548 338 539 493 524 625 516 704 505 792 491 927M645 224C652 338 661 493 676 625 684 704 695 792 709 927" stroke-width="11"/>
+    <path d="M569 225C566 359 565 490 568 625 570 737 573 827 576 930M631 225C634 359 635 490 632 625 630 737 627 827 624 930" stroke-width="6"/>
+    <path d="M556 270L635 336M554 372L646 448M550 478L653 560M542 596L665 676M532 716L678 790M519 832L692 891" stroke-width="7"/>
+    <path d="M644 270L565 336M646 372L554 448M650 478L547 560M658 596L535 676M668 716L522 790M681 832L508 891" stroke-width="5"/>
+    <path d="M565 272l16 22m-18 4 17 23m-18 4 18 23M632 272l-15 22m17 4-17 23m18 4-18 23M560 488l20 26m-23 4 20 27m83-57-20 26m23 4-20 27" stroke-width="3.2"/>
+  </g>
+
+  <!-- Small upper observation deck: a flat roof, glazed band and dark underside. -->
+  <path d="M505 286H695L720 301H480Z" fill="#111" stroke-width="5"/>
+  <path d="M514 282H686L701 292H499Z" fill="#fff" stroke-width="4"/>
+  <path d="M518 288H682M530 286V297M550 286V299M570 286V300M590 286V300M610 286V300M630 286V300M650 286V299M670 286V297" fill="none" stroke-width="3"/>
+  <path d="M518 303l17 12m3-12 17 12m3-12 17 12m3-12 17 12m3-12 17 12m3-12 17 12m3-12 17 12" fill="none" stroke="#333" stroke-width="3.4"/>
+
+  <!-- The two principal floors are broad, level slabs rather than bowed spans. -->
+  <path d="M388 918H812L845 941H355Z" fill="#111" stroke-width="5"/>
+  <path d="M402 909H798L820 923H380Z" fill="#fff" stroke-width="5"/>
+  <path d="M401 914H799M414 912V924M438 912V925M462 912V925M486 912V925M510 912V925M534 912V925M558 912V925M582 912V925M606 912V925M630 912V925M654 912V925M678 912V925M702 912V925M726 912V925M750 912V925M774 912V924" fill="none" stroke-width="3.5"/>
+  <path d="M394 934l18 8m10-8 18 8m10-8 18 8m10-8 18 8m10-8 18 8m10-8 18 8m10-8 18 8m10-8 18 8m10-8 18 8m10-8 18 8m10-8 18 8m10-8 18 8m10-8 18 8m10-8 18 8m10-8 18 8m10-8 18 8" fill="none" stroke="#333" stroke-width="3"/>
+
+  <!-- Four rising legs. Front faces are heavier; rear posts stay open and lighter. -->
+  <path d="M600 43C573 178 555 334 525 487C494 646 447 804 399 944C354 1072 294 1215 178 1365" fill="none" stroke-width="15"/>
+  <path d="M600 43C627 178 645 334 675 487C706 646 753 804 801 944C846 1072 906 1215 1022 1365" fill="none" stroke-width="15"/>
+  <path d="M577 94C554 231 541 374 514 511C485 663 452 807 418 944C387 1063 352 1175 314 1297" fill="none" stroke-width="8"/>
+  <path d="M623 94C646 231 659 374 686 511C715 663 748 807 782 944C813 1063 848 1175 886 1297" fill="none" stroke-width="8"/>
+
+  <!-- Shaped iron shoes and shoulder plates break the long lines into real surfaces. -->
+  <path d="M600 45C573 180 555 335 525 490C495 650 449 810 402 946C354 1083 292 1232 180 1362M600 45C627 180 645 335 675 490C705 650 751 810 798 946C846 1083 908 1232 1020 1362" fill="none" stroke="#333" stroke-width="27"/>
+  <path d="M600 45C573 180 555 335 525 490C495 650 449 810 402 946C354 1083 292 1232 180 1362M600 45C627 180 645 335 675 490C705 650 751 810 798 946C846 1083 908 1232 1020 1362" fill="none" stroke="#fff" stroke-width="7"/>
+  <path d="M600 45C573 180 555 335 525 490C495 650 449 810 402 946C354 1083 292 1232 180 1362M600 45C627 180 645 335 675 490C705 650 751 810 798 946C846 1083 908 1232 1020 1362" fill="none" stroke="#111" stroke-width="15"/>
+
+  <!-- Three broad tiers of selected lattice: each brace belongs to a bay. -->
+  <g fill="none" stroke-width="8">
+    <path d="M505 520L695 676M695 520L505 676M478 680L722 842M722 680L478 842"/>
+    <path d="M430 900L770 1135M770 900L430 1135"/>
+  </g>
+  <g fill="none" stroke="#444" stroke-width="3.6">
+    <path d="M532 545l25 21m-5-39 26 21m-5-39 26 21m-5-39 26 21M668 545l-25 21m5-39-26 21m5-39-26 21m5-39-26 21"/>
+    <path d="M512 709l30 21m-9-44 30 21m-9-44 30 21m-9-44 30 21M688 709l-30 21m9-44-30 21m9-44-30 21m9-44-30 21"/>
+    <path d="M476 947l40 28m-13-55 40 28m-13-55 40 28m-13-55 40 28m-13-55 40 28M724 947l-40 28m13-55-40 28m13-55-40 28m13-55-40 28m13-55-40 28"/>
+  </g>
+
+  <!-- First floor: broad gallery and visible truss girders under its edge. -->
+  <path d="M247 1147H953L1005 1180H195Z" fill="#111" stroke-width="5"/>
+  <path d="M270 1135H930L957 1152H243Z" fill="#fff" stroke-width="5"/>
+  <path d="M270 1142H930M292 1140V1155M326 1140V1156M360 1140V1157M394 1140V1158M428 1140V1158M462 1140V1159M496 1140V1159M530 1140V1159M564 1140V1159M598 1140V1159M632 1140V1159M666 1140V1159M700 1140V1159M734 1140V1158M768 1140V1158M802 1140V1157M836 1140V1156M870 1140V1155M904 1140V1155" fill="none" stroke-width="4"/>
+  <path d="M255 1168l32 12m4-12 32 12m4-12 32 12m4-12 32 12m4-12 32 12m4-12 32 12m4-12 32 12m4-12 32 12m4-12 32 12m4-12 32 12m4-12 32 12m4-12 32 12m4-12 32 12m4-12 32 12m4-12 32 12m4-12 32 12m4-12 32 12m4-12 32 12" fill="none" stroke="#333" stroke-width="3.4"/>
+
+  <!-- Monumental lower arch: one deep opening, framed by two iron ribs. -->
+  <path d="M188 1360C279 1322 350 1175 430 1081C477 1027 522 1005 600 1005C678 1005 723 1027 770 1081C850 1175 921 1322 1012 1360" fill="none" stroke="#111" stroke-width="19"/>
+  <path d="M222 1362C309 1313 378 1178 449 1099C490 1053 534 1035 600 1035C666 1035 710 1053 751 1099C822 1178 891 1313 978 1362" fill="none" stroke="#fff" stroke-width="8"/>
+  <path d="M188 1360L235 1345M1012 1360L965 1345M281 1306l42 24m-25-54 42 24m-21-57 41 25m-18-58 39 25m-13-57 36 24m-6-55 33 23M919 1306l-42 24m25-54-42 24m21-57-41 25m18-58-39 25m13-57-36 24m6-55-33 23" fill="none" stroke="#444" stroke-width="5"/>
+
+  <!-- Selective flank shadow and white iron cuts; the bright face stays open. -->
+  <path d="M394 966C366 1060 322 1187 255 1290M806 966C834 1060 878 1187 945 1290" fill="none" stroke="#333" stroke-width="7"/>
+  <path d="M391 1002l24 14m-32 11 24 15m-32 12 24 15m-32 12 24 15m-32 12 24 15m-31 12 23 15m-31 12 23 15M809 1002l-24 14m32 11-24 15m32 12-24 15m32 12-24 15m32 12-24 15m31 12-23 15m31 12-23 15" fill="none" stroke="#444" stroke-width="4"/>
+
+  <!-- Floor undersides carry grouped shadow, with short open cuts between beams. -->
+  <path d="M390 944l18 13m14-13 18 13m14-13 18 13m14-13 18 13m14-13 18 13m14-13 18 13m14-13 18 13m14-13 18 13m14-13 18 13m14-13 18 13m14-13 18 13M250 1170l24 13m10-13 24 13m10-13 24 13m10-13 24 13m10-13 24 13m10-13 24 13m10-13 24 13m10-13 24 13m10-13 24 13m10-13 24 13m10-13 24 13m10-13 24 13m10-13 24 13m10-13 24 13m10-13 24 13m10-13 24 13m10-13 24 13m10-13 24 13" fill="none" stroke="#444" stroke-width="4"/>
+  <path d="M452 964l10 8m22-8 10 8m22-8 10 8m22-8 10 8m22-8 10 8m22-8 10 8m-350 229 15 8m25-8 15 8m25-8 15 8m25-8 15 8m25-8 15 8m25-8 15 8m25-8 15 8m25-8 15 8m25-8 15 8m25-8 15 8m25-8 15 8m25-8 15 8" fill="none" stroke="#fff" stroke-width="3"/>
+
+  <!-- Feet, plinths and a few rivet heads anchor the ironwork. -->
+  <path d="M153 1372H392M808 1372H1047M166 1380H390M810 1380H1034" fill="none" stroke-width="8"/>
+  <path d="M174 1351l-12 21m64-39-9 23m129-180-11 28M1026 1351l12 21m-64-39 9 23m-129-180 11 28" fill="none" stroke="#111" stroke-width="9"/>
+  <g fill="#111" stroke="none">
+    <circle cx="270" cy="1144" r="5"/><circle cx="930" cy="1144" r="5"/>
+    <circle cx="397" cy="918" r="4"/><circle cx="803" cy="918" r="4"/>
+    <circle cx="586" cy="300" r="3.5"/><circle cx="614" cy="300" r="3.5"/>
+    <circle cx="350" cy="1372" r="4"/><circle cx="850" cy="1372" r="4"/>
+  </g>
 </g>
-<g stroke-width="5"><path d="M468 157H532 M408 231H592 M280 451H720 M135 718H865 M78 957H922 M52 1108H948"/>
- <path d="M500 30V80 M486 88H514 M477 111H523 M465 145H535"/>
-</g>
-<!-- The two open arches and deck slabs carry the silhouette; keep clear white apertures. -->
-<g stroke-width="10"><path d="M292 459 C319 506 350 553 390 586 Q500 660 610 586 C650 553 681 506 708 459"/>
- <path d="M148 727 C188 800 249 861 320 900 Q500 985 680 900 C751 861 812 800 852 727"/></g>
-<g stroke-width="7"><path d="M354 422H646 M340 435H660 M236 687H764 M220 701H780"/></g>
-<!-- Platform balustrades, repeated window bays and structural posts. -->
-<g stroke-width="2.5">
- <path d="M365 405V422 M390 405V422 M415 405V422 M440 405V422 M465 405V422 M490 405V422 M515 405V422 M540 405V422 M565 405V422 M590 405V422 M615 405V422 M635 405V422"/>
- <path d="M255 669V687 M285 669V687 M315 669V687 M345 669V687 M375 669V687 M405 669V687 M435 669V687 M465 669V687 M495 669V687 M525 669V687 M555 669V687 M585 669V687 M615 669V687 M645 669V687 M675 669V687 M705 669V687 M735 669V687"/>
-</g>
-<!-- Primary diagonal iron bracing: broad facets, distinct from tonal engraving below. -->
-<g stroke-width="4.3">
- <path d="M148 727L316 727L205 1114 M852 727L684 727L795 1114 M148 727L250 965L316 727 M852 727L750 965L684 727"/>
- <path d="M130 800L295 930 M111 876L274 1001 M95 951L251 1067 M870 800L705 930 M889 876L726 1001 M905 951L749 1067"/>
- <path d="M292 459L388 459L316 727 M708 459L612 459L684 727 M292 459L421 236L388 459 M708 459L579 236L612 459"/>
- <path d="M330 530L402 606 M367 466L449 575 M670 530L598 606 M633 466L551 575 M365 635L393 690 M635 635L607 690"/>
- <path d="M421 236L453 236L388 459 M579 236L547 236L612 459 M453 236L478 159L490 159 M547 236L522 159L510 159"/>
- <path d="M433 260L464 294 M447 218L475 253 M566 260L535 294 M553 218L525 253 M414 310L455 352 M586 310L545 352 M399 361L444 403 M601 361L556 403"/>
-</g>
-<!-- Engraved iron: one directional light on the left faces, deeper cross-hatched shadow on right-facing inner members. Mark density follows taper and gathers under deck plates; it is not a uniform lattice overlay. -->
-<g stroke="#333" stroke-width="2.2" opacity=".86">
- <!-- broad lower-leg shadow planes -->
- <path d="M160 748l22 36 M174 743l23 37 M189 738l23 38 M204 734l23 39 M219 732l22 37 M834 748l-22 36 M820 743l-23 37 M805 738l-23 38 M790 734l-23 39 M775 732l-22 37"/>
- <path d="M180 782l33 22 M197 782l34 22 M214 782l34 22 M231 782l34 22 M820 782l-33 22 M803 782l-34 22 M786 782l-34 22 M769 782l-34 22"/>
- <path d="M116 849l20 31 M130 845l20 31 M145 841l20 31 M159 838l20 31 M174 835l20 31 M188 832l20 31 M884 849l-20 31 M870 845l-20 31 M855 841l-20 31 M841 838l-20 31 M826 835l-20 31 M812 832l-20 31"/>
- <path d="M96 929l19 30 M110 925l19 30 M124 921l19 30 M138 918l19 30 M152 914l19 30 M166 911l19 30 M904 929l-19 30 M890 925l-19 30 M876 921l-19 30 M862 918l-19 30 M848 914l-19 30 M834 911l-19 30"/>
- <!-- clustered cross-hatch under the two platforms and through the arch shoulders -->
- <path d="M306 468l22 27 M320 465l23 28 M335 462l23 29 M350 460l24 30 M694 468l-22 27 M680 465l-23 28 M665 462l-23 29 M650 460l-24 30"/>
- <path d="M318 492l28-19 M333 510l29-20 M349 528l30-20 M365 545l30-19 M682 492l-28-19 M667 510l-29-20 M651 528l-30-20 M635 545l-30-19"/>
- <path d="M163 743l30 24 M179 741l31 25 M196 739l32 25 M213 738l32 25 M837 743l-30 24 M821 741l-31 25 M804 739l-32 25 M787 738l-32 25"/>
- <!-- tapering upper iron shadows; short, tighter strokes, leaving open sky -->
- <path d="M430 252l17 20 M440 246l17 19 M450 241l16 18 M570 252l-17 20 M560 246l-17 19 M550 241l-16 18 M402 482l19 23 M414 478l19 23 M426 474l18 22 M598 482l-19 23 M586 478l-19 23 M574 474l-18 22"/>
- <!-- deck undersides: horizontal shadow hatching and vertical support shadows -->
- <path d="M358 439l14 8 M382 439l14 8 M406 439l14 8 M430 439l14 8 M454 439l14 8 M478 439l14 8 M502 439l14 8 M526 439l14 8 M550 439l14 8 M574 439l14 8 M598 439l14 8 M622 439l14 8"/>
- <path d="M246 706l17 9 M274 706l17 9 M302 706l17 9 M330 706l17 9 M358 706l17 9 M386 706l17 9 M414 706l17 9 M442 706l17 9 M470 706l17 9 M498 706l17 9 M526 706l17 9 M554 706l17 9 M582 706l17 9 M610 706l17 9 M638 706l17 9 M666 706l17 9 M694 706l17 9 M722 706l17 9"/>
-</g>
-<!-- Small rivet/brace joints, sparingly punctuated -->
-<g fill="#222" stroke="none"><circle cx="292" cy="459" r="4"/><circle cx="708" cy="459" r="4"/><circle cx="148" cy="727" r="4"/><circle cx="852" cy="727" r="4"/><circle cx="316" cy="727" r="3"/><circle cx="684" cy="727" r="3"/><circle cx="500" cy="231" r="3"/><circle cx="500" cy="451" r="3"/><circle cx="500" cy="718" r="3"/></g>
-<g stroke-width="5"><path d="M48 1116H277 M723 1116H952"/></g>
-</g></svg>
+</svg>

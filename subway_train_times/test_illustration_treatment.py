@@ -20,10 +20,10 @@ class IllustrationTreatmentTests(unittest.TestCase):
                 actual.paste(0, (0, 0, actual.width, actual.height))
                 self.assertEqual(art_catalog.image_for(entry, width, height).tobytes(), expected.tobytes())
 
-    def test_provisional_art_is_distinct_and_bundled(self):
+    def test_approved_landmark_art_is_distinct_and_bundled(self):
         entries = art_catalog.catalog()[4:]
         self.assertEqual(len({entry['object_id'] for entry in entries}), 3)
-        self.assertTrue(all(entry['selection_status'].startswith('provisional') for entry in entries))
+        self.assertTrue(all(entry['selection_status'].startswith('user-approved') for entry in entries))
         for entry in entries:
             self.assertEqual(art_catalog.image_for(entry, 354, 140).mode, '1')
 

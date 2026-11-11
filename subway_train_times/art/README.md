@@ -10,9 +10,9 @@ The board selects the same artwork for each weekday using **America/New_York** c
 | Tuesday | Katsushika Hokusai | The Great Wave | [36491](https://www.metmuseum.org/art/collection/search/36491) |
 | Wednesday | Bewick | A Bird | [National Gallery of Art, 124533](https://www.nga.gov/artworks/124533-bird) |
 | Thursday | Adapted CC0 line art | Statue of Liberty detail | [FreeSVG](https://freesvg.org/statue-of-liberty) |
-| Friday | Newly authored tonal line study | Eiffel Tower | [Structural reference](https://www.toureiffel.paris/en/the-monument/history) |
-| Saturday | Adapted CC0 architectural line study | Space Needle | [FreeSVG](https://freesvg.org/1553181540) |
-| Sunday | Newly authored interpretation | Mount Rainier | [Library of Congress reference](https://www.loc.gov/item/2010651155/) |
+| Friday | Authored CC0 structural line study | Eiffel Tower | [Visual reference](https://www.musee-orsay.fr/fr/oeuvres/elevation-generale-de-la-tour-eiffel-68404) |
+| Saturday | Authored CC0 architectural detail | Space Needle observation deck | [Visual reference](https://commons.wikimedia.org/wiki/File:Space_Needle_1997_Day.jpg) |
+| Sunday | Adapted public-domain NPS photographic landscape | Mount Rainier from Spray Park | [NPS source and rights](https://npgallery.nps.gov/AssetDetail/caac960d-55ea-4666-9182-6893bc6854b8) |
 
 [`weekdays/catalog.json`](weekdays/catalog.json) records the current seven selections,
 their source/reference URLs, bundled SHA-256 checksums, and rendering treatments.
@@ -21,14 +21,18 @@ to the available region before thresholding, ordered halftoning, or dithering.
 Captions may be ellipsized to fit.
 
 Monday–Wednesday use historical prints. Thursday adapts a CC0 illustration.
-Friday–Sunday are provisional authored/adapted landmark studies; they are not
-historical engravings or measured architectural/geographic records. The Eiffel
-Tower history page is a factual reference, not an image source. See
+The complete collection was approved in user review on 2026-11-11. Friday and
+Saturday are authored architectural studies; Sunday is a photographic landscape
+detail with tonal treatment. They are not historical engravings or measured
+architectural/geographic records. See
 [`weekdays/LANDMARK-STUDIES.md`](weekdays/LANDMARK-STUDIES.md) for the recorded
 provenance and rights notes for these studies.
 
-Only the currently selected weekday PNGs and the editable SVGs for the three
-landmark studies are bundled. Superseded alternatives remain available in Git
+Only the selected weekday PNGs and editable SVGs for the two authored tower
+studies are bundled. [Reproduction details](weekdays/LANDMARK-STUDIES.md) include
+the deliberate Saturday crop and the NPS original needed to rebuild Sunday.
+[The style guide](STYLE-GUIDE.md) records the collection's visual principles.
+Superseded alternatives remain available in Git
 history. The renderer uses IBM Plex Sans and IBM Plex Mono; their OFL license
 texts are bundled in [`../fonts/`](../fonts/).
 
