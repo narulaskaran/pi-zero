@@ -83,7 +83,11 @@ DOWNTOWN:
 
 ## reTerminal E-ink Display Setup
 
-This project includes a Flask server that generates BMP images for display on a reTerminal e-ink screen with dynamic refresh rates based on phone presence detection.
+The Flask server generates the 800×480 Field Notes weather and reminder board
+for a reTerminal e-ink screen. It shows weekday artwork and uses shared phone
+presence to select its refresh interval. Although the service is named
+`subway-display`, it no longer fetches or displays subway arrivals. The
+`get_train_times.py` command documented above remains available for transit data.
 
 ### Features
 

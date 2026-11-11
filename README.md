@@ -1,37 +1,24 @@
 # pi-zero
 
-Raspberry Pi home server scripts, including the Home Edit shared-home e-ink board.
+Raspberry Pi home server scripts for an e-ink household board, standalone NYC
+subway arrivals, and home infrastructure.
 
-## Home Edit
+## E-ink Board
 
-The 800×480 board now shows an editorial weather summary, a neighborhood illustration,
-tomorrow’s forecast, modeled US air quality, and daylight times. It does not show a
-live clock or fetch subway arrivals. The existing `/display.bmp`, `/refresh-rate`,
-`/status`, and overlay APIs remain available. The display is instructed to sleep
-for **15 minutes** in all presence/night states; firmware must honor `/refresh-rate`.
-This reduces scheduled wakeups, not a measured battery-life guarantee.
+The 800×480 **Field Notes** board shows weather, tomorrow’s forecast, air quality,
+weekday artwork, and shared reminders. It includes battery status and the image
+update time. The server still runs as `subway-display`, but its current display
+layout does not show subway arrivals; use `get_train_times.py` for those.
 
-- Active banner and sidebar reminders retain their stored IDs, priorities, starts-at and
-  expiry filtering, and share one stable priority-sorted list; fullscreen overlays remain
-  exclusive and preserve their existing image/title/body treatment. The list shows a visible
-  `+N more` count when it runs out of rows, keeps park art in the remaining space, and
-  includes small thumbnails for reminder images. No timed cycling.
-- Missing weather/air readings are labeled unavailable, never replaced with made-up data.
-- Weather and modeled air-quality data: [Open-Meteo](https://open-meteo.com/),
-  including CAMS-derived air-quality forecasts. Values are regional estimates, not
-  a household sensor. Temperatures are Fahrenheit.
-- Instrument Serif and DM Sans fonts are bundled under their included SIL Open Font
-  Licenses in `subway_train_times/fonts/`; no runtime font downloads are needed.
-- Offline acceptance tests: `cd subway_train_times && python3 -m unittest test_home_edit -v`.
-  Tests use temporary overlay storage and never change live reminders.
-- Deployment: the existing updater pulls `main` and restarts `subway-display`.
-  Verify `/status` reports `layout: home_edit`, `renderer_version: home-edit-2-reminder-list`, and
-  `current_refresh_seconds: 900`, then inspect a fresh `/display.bmp`.
-- Rollback: revert the Home Edit commit on `main`; the same updater restores the
-  previous renderer. Local device configuration and overlay data are not committed.
+The board refreshes every **15 minutes when home** and **60 minutes when away or
+at night**, using the shared presence cache. Unknown presence uses 15 minutes
+outside night hours. Night hours default to 1–7am in `America/New_York`.
+Device firmware must honor `/refresh-rate` for these intervals to take effect.
 
-The remaining setup documentation includes the original subway tooling, which is
-retained for standalone use; it is not part of the Home Edit render path.
+- [Configuration and device setup](subway_train_times/README.md#reterminal-e-ink-display-setup)
+- [Artwork sources and catalog](subway_train_times/art/README.md)
+- Display endpoints: `/display.bmp` and `/display.png`; diagnostics: `/status`
+- Reminder API: `POST /overlay`, `GET /overlays`, and the overlay deletion endpoints
 
 ## Quick Setup
 
@@ -46,7 +33,7 @@ git clone https://github.com/yourusername/pi-zero.git
 cd pi-zero
 sudo ./setup.sh
 
-# 4. Configure your station
+# 4. Configure weather location and display settings
 nano subway_train_times/config.yaml
 
 # 5. Start the service
@@ -54,17 +41,17 @@ sudo systemctl restart subway-display
 sudo systemctl status subway-display
 ```
 
-Your subway display server is now running at `http://<pi-ip>:5000/display.png`
+Your e-ink display server is now running at `http://<pi-ip>:5000/display.png`
 
 ## Projects
 
 ### subway_train_times
 
-Real-time NYC subway arrivals with weather and e-ink display support.
+Field Notes e-ink board and standalone real-time NYC subway arrivals.
 
 - **Documentation:** [Project README](subway_train_times/README.md)
 - **Hardware Guide:** [reTerminal Setup](subway_train_times/reterminal.md)
-- **Features:** Live MTA data, dynamic refresh rates, OTA firmware updates
+- **Features:** Weather and reminders on e-ink, weekday artwork, shared presence refresh policy, standalone MTA arrivals
 
 ## Infrastructure
 
@@ -90,6 +77,29 @@ cd ~/pi-zero && git pull && sudo systemctl restart subway-display
 - **Service won't start:** `sudo journalctl -u subway-display -n 50`
 - **Display not updating:** Check `curl http://localhost:5000/display.png`
 - **Network issues:** `ping google.com` and `tailscale status`
+
+## Secret Scanning
+
+GitHub secret scanning and push protection are enabled for this repository.
+The [Secret scan workflow](.github/workflows/secret-scan.yml) also runs Gitleaks
+on pull requests, pushes to `main`, and manual runs. It scans reachable Git
+history with redacted output and no uploaded findings artifact.
+
+With Gitleaks 8.30.1 installed, run the same check locally:
+
+```bash
+gitleaks git --log-opts="--all" --redact --no-banner .
+```
+
+For a check of staged changes before committing:
+
+```bash
+gitleaks git --pre-commit --staged --redact --no-banner .
+```
+
+Keep local credentials in ignored files. Synthetic MAC addresses in the example
+configurations are intentional. The workflow must be added as a required status
+check in branch protection if it should block merges.
 
 ## License
 
