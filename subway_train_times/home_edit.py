@@ -1,5 +1,5 @@
 """Field Notes: deterministic 800x480 adaptive 1-bit weather/reminder board."""
-from datetime import datetime, timedelta
+from datetime import datetime
 from functools import lru_cache
 from pathlib import Path
 import math
@@ -62,8 +62,8 @@ def _degree(value):
 
 def forecast_index(weather, now):
     dates = (weather or {}).get('daily', {}).get('time', [])
-    tomorrow = (now.date() + timedelta(days=1)).isoformat()
-    return dates.index(tomorrow) if tomorrow in dates else None
+    today = now.date().isoformat()
+    return dates.index(today) if today in dates else None
 
 
 def _daily(weather, key, index):
@@ -210,7 +210,7 @@ def render(now, weather, aqi=None, battery_percent=None, has_sidebar=False, remi
     hi = _degree(_daily(weather, 'temperature_2m_max', forecast_day))
     lo = _degree(_daily(weather, 'temperature_2m_min', forecast_day))
     rain = _number(_daily(weather, 'precipitation_probability_max', forecast_day))
-    tomorrow_rain = f'{rain}%' if rain is not None else '--'
+    today_rain = f'{rain}%' if rain is not None else '--'
     air_value = _number(aqi)
     air_label = str(air_value) if air_value is not None else '--'
     _text(d, 28, 18, now.strftime('%a %d %b').upper(), 17, 'mono')
@@ -228,9 +228,9 @@ def render(now, weather, aqi=None, battery_percent=None, has_sidebar=False, remi
         condition_size -= 1
     _text(d, 186, 87 + dy, condition, condition_size, 'mono', max_width=190)
     _text(d, 187, 132 + dy, f'Feels like {feels}', 17, 'sans', max_width=188)
-    _text(d, 29, 184 + dy, 'Tomorrow', 16, 'mono')
+    _text(d, 29, 184 + dy, 'Today', 16, 'mono')
     _text(d, 159, 180 + dy, f'{hi} / {lo}', 24, 'sans', max_width=210, weight=560)
-    _text(d, 29, (216 if count >= 3 else 224) + dy, f'Rain {tomorrow_rain}   ·   AQI {air_label}', 17, 'mono', max_width=335)
+    _text(d, 29, (216 if count >= 3 else 224) + dy, f'Rain {today_rain}   ·   AQI {air_label}', 17, 'mono', max_width=335)
     art_box = (386, 87, 369, 338) if not populated else (418, 69, 354, split - 112)
     caption = _place_art(im, art_box, now)
     if art_box[3] > 0:

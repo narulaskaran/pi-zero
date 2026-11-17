@@ -67,8 +67,8 @@ class FieldNotesTests(unittest.TestCase):
         self.assertEqual(self.client.get('/status').json['layout'], 'home_edit')
         self.assertEqual(self.client.get('/refresh-rate').json['refresh_minutes'], 15)
 
-    def test_weather_sparse_extreme_and_tomorrow_by_date(self):
-        self.assertEqual(home_edit.forecast_index(WEATHER, NOW), 2)
+    def test_weather_sparse_extreme_and_today_by_date(self):
+        self.assertEqual(home_edit.forecast_index(WEATHER, NOW), 1)
         self.assertIsNone(home_edit.forecast_index(WEATHER, datetime(2026, 11, 12)))
         for weather in ({}, {'current': {}}, {'current': {'temperature_2m': -12, 'apparent_temperature': -30, 'weather_code': 95}}, {'daily': {'time': []}}):
             im = home_edit.render(NOW, weather, None)
@@ -152,7 +152,7 @@ class FieldNotesTests(unittest.TestCase):
             self.assertEqual(im.size, (800, 480))
         self.assertEqual(self.client.get('/display.png').status_code, 200)
 
-    def test_empty_route_keeps_tomorrow_rain_and_aqi_visible(self):
+    def test_empty_route_keeps_today_rain_and_aqi_visible(self):
         image = self.bitmap().convert('L')
         # Independent content bands must contain actual dark pixels at approved empty-state y positions.
         for box in ((25, 245, 365, 275), (25, 285, 365, 320)):

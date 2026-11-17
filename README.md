@@ -5,7 +5,7 @@ subway arrivals, and home infrastructure.
 
 ## E-ink Board
 
-The 800×480 **Field Notes** board shows weather, tomorrow’s forecast, air quality,
+The 800×480 **Field Notes** board shows weather, today’s forecast, air quality,
 weekday artwork, and shared reminders. It includes battery status and the image
 update time. The server still runs as `subway-display`, but its current display
 layout does not show subway arrivals; use `get_train_times.py` for those.
